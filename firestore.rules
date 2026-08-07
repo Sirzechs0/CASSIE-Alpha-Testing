@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Fetches the logged-in user's own account document once
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isStaffOrAdmin() {
+      return request.auth != null &&
+        getUserData().role in ['admin', 'staff'];
+    }
+
+    // A "secretary" account may only write attendance for the specific
+    // section(s) listed in their own account's assignedSections array.
+    function isSecretaryFor(sectionId) {
+      return request.auth != null &&
+        getUserData().role == 'secretary' &&
+        'assignedSections' in getUserData() &&
+        sectionId in getUserData().assignedSections;
+    }
+
+    // Role documents — each user can only read their own
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    // Announcements — public read, admin/staff write only (secretaries excluded)
+    match /announcements/{id} {
+      allow read: if true;
+      allow create, update, delete: if isStaffOrAdmin();
+    }
+
+    // Lost & Found — public read, admin/staff write only
+    match /lostAndFound/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isStaffOrAdmin();
+    }
+
+    // Suspension notice — public read, admin/staff write only
+    match /siteStatus/{id} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+
+    // FAQs — public read, admin/staff write only
+    match /faqs/{id} {
+      allow read: if true;
+      allow create, update, delete: if isStaffOrAdmin();
+    }
+
+    // Class lists (sections + students) — public read, admin/staff write only.
+    // Secretaries can VIEW their section's roster but cannot import, edit,
+    // or delete it — that responsibility stays with admin/staff.
+    match /sections/{sectionId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+
+      match /students/{studentId} {
+        allow read: if true;
+        allow write: if isStaffOrAdmin();
+      }
+    }
+
+    // Attendance records — public read (for Reports).
+    // Admin/staff can write to ANY section.
+    // Secretaries can only create/update the record for a section they are
+    // specifically assigned to — enforced here, not just hidden in the UI.
+    // Only admin/staff can delete an attendance record.
+    match /attendance/{recordId} {
+      allow read: if true;
+      allow create: if isStaffOrAdmin() || isSecretaryFor(request.resource.data.sectionId);
+      allow update: if isStaffOrAdmin() || isSecretaryFor(resource.data.sectionId);
+      allow delete: if isStaffOrAdmin();
+    }
+  }
+}

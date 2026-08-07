@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script>
+  (function () {
+    if (localStorage.getItem("cassieTheme") === "light") {
+      document.documentElement.setAttribute("data-theme", "light");
+    }
+  })();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Announcements | PCSHS SMS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body id="top">
+
+<div class="bg-decor" aria-hidden="true">
+  <div class="bg-grid"></div>
+  <div class="bg-glow bg-glow-a"></div>
+  <div class="bg-glow bg-glow-b"></div>
+</div>
+
+<div id="suspension-banner" class="suspension-banner" hidden></div>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="index.html">
+      <img src="logo.png" alt="PCSHS logo">
+      <span class="brand-text">
+        <span class="brand-name">Pasig City Science High School</span>
+        <span class="brand-tagline">We Excel, We Serve, We Lead</span>
+      </span>
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">Dashboard</a>
+      <a href="attendance.html">Attendance</a>
+      <a href="reports.html">Reports</a>
+      <a href="announcements.html" class="active">Announcements</a>
+      <a href="lost-and-found.html">Lost &amp; Found</a>
+      <a href="calendar-history.html">Calendar &amp; History</a>
+      <a href="faqs.html">FAQs</a>
+      <a href="clubs.html">Clubs</a>
+      <a href="staff-directory.html">Staff Directory</a>
+    </nav>
+    <div class="header-actions">
+      <button id="nav-toggle" class="nav-toggle" type="button" aria-label="Toggle navigation menu">☰</button>
+      <a class="login-link" href="login.html" id="login-link">Log In</a>
+      <button class="login-link" id="logout-button" type="button" hidden>Log Out</button>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle dark/light mode">☀️</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="page-header fx-rise-in">
+    <span class="eyebrow">MODULE — ANNOUNCEMENTS</span>
+    <h1>Our <span class="text-gradient">Announcements</span></h1>
+    <p>Official school notices and staff-uploaded pubmats.</p>
+  </div>
+
+  <div id="upload-section" class="form-card" hidden>
+    <h2>Post a New Announcement</h2>
+    <form id="upload-form">
+      <div class="form-field">
+        <label for="pubmat-caption">Caption (optional)</label>
+        <input type="text" id="pubmat-caption" placeholder="e.g. Foundation Day schedule">
+      </div>
+
+      <div class="form-field">
+        <label>Pubmat Images</label>
+        <div id="upload-dropzone" class="upload-dropzone">
+          <span id="upload-dropzone-text">📷 Click to choose photos, or drag them here — you can add more than one</span>
+          <div id="upload-preview-grid" class="upload-preview-grid" hidden></div>
+        </div>
+        <input type="file" id="pubmat-file" accept="image/*" multiple hidden>
+      </div>
+
+      <button type="submit" id="upload-button" class="btn-primary">Post Announcement</button>
+    </form>
+    <p id="upload-status" class="status-text"></p>
+  </div>
+
+  <p id="feed-count" class="feed-count"></p>
+  <div id="announcements-feed" class="feed-grid fx-stagger">
+    <p class="muted">Loading announcements...</p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-top">
+    <div>
+      <a class="footer-logo" href="index.html">
+        <img src="logo.png" alt="PCSHS logo">
+        <span class="footer-brand-text">
+          <span class="footer-brand-name">C.A.S.S.I.E.</span>
+          <span class="footer-brand-sub">Pasig City Science High School</span>
+        </span>
+      </a>
+      <p class="footer-blurb">Centralized Academic and School Services Information Engine — one place for attendance, announcements, and everything Pascians need to know.</p>
+      <div class="footer-social">
+        <!-- Paste each real profile URL into the href="#" below. -->
+        <a href="#" class="footer-social-link" aria-label="Facebook" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h-2a5 5 0 0 0-5 5v3H6v4h2v6h4v-6h3l1-4h-4V8a1 1 0 0 1 1-1h3z"/></svg>
+        </a>
+        <a href="#" class="footer-social-link" aria-label="Instagram" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1"/></svg>
+        </a>
+        <a href="#" class="footer-social-link" aria-label="TikTok" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v9.5a3.5 3.5 0 1 1-3-3.46"/><path d="M14 4c.5 2.5 2.2 4.2 4.5 4.5"/></svg>
+        </a>
+        <a href="#" class="footer-social-link" aria-label="YouTube" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="4"/><path d="M11 9.5l4 2.5-4 2.5z" fill="currentColor" stroke="none"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="footer-col">
+      <span class="footer-col-title">Explore</span>
+      <a href="index.html">Dashboard</a>
+      <a href="attendance.html">Attendance</a>
+      <a href="reports.html">Reports</a>
+      <a href="announcements.html">Announcements</a>
+      <a href="lost-and-found.html">Lost &amp; Found</a>
+    </div>
+
+    <div class="footer-col">
+      <span class="footer-col-title">Resources</span>
+      <a href="calendar-history.html">Calendar &amp; History</a>
+      <a href="faqs.html">FAQs</a>
+      <a href="clubs.html">Clubs</a>
+      <a href="staff-directory.html">Staff Directory</a>
+      <a href="login.html">Staff Login</a>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <p>&copy; <span id="footer-year">2026</span> Pasig City Science High School — C.A.S.S.I.E.</p>
+    <a href="#top" class="footer-top-link">Back to top <span class="arrow-up">↑</span></a>
+  </div>
+</footer>
+<script>document.getElementById("footer-year").textContent = new Date().getFullYear();</script>
+
+<!-- ===================== EDIT ANNOUNCEMENT MODAL ===================== -->
+<div id="edit-modal" class="modal-overlay" hidden>
+  <div class="modal-box">
+    <h2>Edit Announcement</h2>
+    <div class="form-field">
+      <label for="edit-caption">Caption</label>
+      <input type="text" id="edit-caption" placeholder="e.g. Foundation Day schedule">
+    </div>
+    <div class="form-field">
+      <label>Images</label>
+      <div id="edit-preview-grid" class="upload-preview-grid"></div>
+      <div id="edit-dropzone" class="upload-dropzone">
+        <span>📷 Click to add more photos, or drag them here</span>
+      </div>
+      <input type="file" id="edit-file-input" accept="image/*" multiple hidden>
+    </div>
+    <p id="edit-status" class="status-text"></p>
+    <div class="modal-footer">
+      <button type="button" id="edit-cancel-btn" class="btn-secondary">Cancel</button>
+      <button type="button" id="edit-save-btn" class="btn-primary">Save Changes</button>
+    </div>
+  </div>
+</div>
+<!-- =========================================================== -->
+
+<!-- ===================== CONFIRM MODAL ===================== -->
+<div id="confirm-modal" class="modal-overlay" hidden>
+  <div class="modal-box confirm-box">
+    <h2 id="confirm-title">Are you sure?</h2>
+    <p id="confirm-message" class="confirm-message"></p>
+    <div class="modal-footer">
+      <button type="button" id="confirm-cancel-btn" class="btn-secondary">Cancel</button>
+      <button type="button" id="confirm-ok-btn" class="btn-danger">Delete</button>
+    </div>
+  </div>
+</div>
+<!-- =========================================================== -->
+
+<!-- ===================== IMAGE LIGHTBOX ===================== -->
+<div id="lightbox" class="lightbox-overlay" hidden>
+  <button type="button" id="lightbox-close" class="lightbox-close" aria-label="Close">✕</button>
+  <button type="button" id="lightbox-prev" class="lightbox-nav lightbox-prev" aria-label="Previous image">‹</button>
+  <img id="lightbox-img" class="lightbox-img" alt="">
+  <button type="button" id="lightbox-next" class="lightbox-nav lightbox-next" aria-label="Next image">›</button>
+  <span id="lightbox-counter" class="lightbox-counter"></span>
+</div>
+<!-- =========================================================== -->
+
+<script type="module" src="announcements.js"></script>
+<script type="module" src="auth-ui.js"></script>
+<script src="nav.js"></script>
+<script type="module" src="suspension-banner.js"></script>
+<script src="theme.js"></script>
+</body>
+</html>

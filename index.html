@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script>
+  (function () {
+    if (localStorage.getItem("cassieTheme") === "light") {
+      document.documentElement.setAttribute("data-theme", "light");
+    }
+  })();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard | PCSHS SMS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body id="top">
+
+<!-- Brief branded loading screen — dashboard only, since this is the page
+     most people land on first. Pure CSS (see style.css), so it always
+     clears itself on a timer and never depends on a script running. -->
+<div class="site-preloader" aria-hidden="true">
+  <div class="preloader-inner">
+    <img src="logo.png" alt="" class="preloader-logo">
+    <span class="preloader-word">C.A.S.S.I.E.</span>
+    <span class="preloader-bar"><span class="preloader-bar-fill"></span></span>
+  </div>
+</div>
+
+<div class="bg-decor" aria-hidden="true">
+  <div class="bg-grid"></div>
+  <div class="bg-glow bg-glow-a"></div>
+  <div class="bg-glow bg-glow-b"></div>
+</div>
+
+<div id="suspension-banner" class="suspension-banner" hidden></div>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="index.html">
+      <img src="logo.png" alt="PCSHS logo">
+      <span class="brand-text">
+        <span class="brand-name">Pasig City Science High School</span>
+        <span class="brand-tagline">We Excel, We Serve, We Lead</span>
+      </span>
+    </a>
+    <nav class="site-nav">
+      <a href="index.html" class="active">Dashboard</a>
+      <a href="attendance.html">Attendance</a>
+      <a href="reports.html">Reports</a>
+      <a href="announcements.html">Announcements</a>
+      <a href="lost-and-found.html">Lost &amp; Found</a>
+      <a href="calendar-history.html">Calendar &amp; History</a>
+      <a href="faqs.html">FAQs</a>
+      <a href="clubs.html">Clubs</a>
+      <a href="staff-directory.html">Staff Directory</a>
+    </nav>
+    <div class="header-actions">
+      <button id="nav-toggle" class="nav-toggle" type="button" aria-label="Toggle navigation menu">☰</button>
+      <a class="login-link" href="login.html" id="login-link">Log In</a>
+      <button class="login-link" id="logout-button" type="button" hidden>Log Out</button>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle dark/light mode">☀️</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="hero" class="hero fx-rise-in" hidden>
+    <div class="hero-image-wrap">
+      <img id="hero-image" src="" alt="">
+    </div>
+    <div class="hero-body">
+      <span class="hero-tag">Latest Announcement</span>
+      <h1 id="hero-title"></h1>
+      <p id="hero-caption">Posted on the Announcements page — check it out for the full details.</p>
+      <a href="announcements.html" class="btn-primary">View All Announcements <span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <div id="hero-fallback" class="page-header hero-block fx-rise-in">
+    <span class="eyebrow">Pasig City Science High School</span>
+    <h1>Welcome to <span class="text-gradient">C.A.S.S.I.E.</span></h1>
+    <p>Centralized Academic and School Services Information Engine — one place for attendance, announcements, and everything Pascians need to know.</p>
+    <div class="hero-block-actions">
+      <a href="attendance.html" class="btn-primary">View Attendance</a>
+      <a href="announcements.html" class="btn-secondary">See Announcements</a>
+    </div>
+    <span class="scroll-cue">Explore</span>
+  </div>
+
+  <div class="stats-bar fx-stagger" id="dash-stats">
+    <div class="stat-item">
+      <span class="stat-number" id="stat-students">–</span>
+      <span class="stat-label">Students Enrolled</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-number" id="stat-sections">–</span>
+      <span class="stat-label">Active Sections</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-number" id="stat-announcements">–</span>
+      <span class="stat-label">Announcements Posted</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-number" id="stat-modules">8</span>
+      <span class="stat-label">Modules Online</span>
+    </div>
+  </div>
+
+  <div class="marquee fx-rise-in" aria-hidden="true">
+    <div class="marquee-track">
+      <div class="marquee-group">
+        <span class="marquee-item">Attendance</span>
+        <span class="marquee-item">Reports</span>
+        <span class="marquee-item">Announcements</span>
+        <span class="marquee-item">Lost &amp; Found</span>
+        <span class="marquee-item">Calendar &amp; History</span>
+        <span class="marquee-item">FAQs</span>
+        <span class="marquee-item">Clubs</span>
+        <span class="marquee-item">Staff Directory</span>
+      </div>
+      <div class="marquee-group">
+        <span class="marquee-item">Attendance</span>
+        <span class="marquee-item">Reports</span>
+        <span class="marquee-item">Announcements</span>
+        <span class="marquee-item">Lost &amp; Found</span>
+        <span class="marquee-item">Calendar &amp; History</span>
+        <span class="marquee-item">FAQs</span>
+        <span class="marquee-item">Clubs</span>
+        <span class="marquee-item">Staff Directory</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="suspension-admin" class="form-card" hidden>
+    <h2>Suspension Notice</h2>
+    <form id="suspension-form">
+      <div class="form-field">
+        <label for="suspension-message">Banner Message</label>
+        <input type="text" id="suspension-message" placeholder="e.g. Classes are suspended due to heavy rain.">
+      </div>
+      <div class="form-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="suspension-active">
+          Show this banner site-wide right now
+        </label>
+      </div>
+      <button type="submit" id="suspension-save-btn" class="btn-primary">Save</button>
+    </form>
+    <p id="suspension-status" class="status-text"></p>
+  </div>
+
+  <div class="section-heading fx-rise-in">
+    <span class="eyebrow">EXPLORE THE SYSTEM</span>
+    <h2>Everything the school runs on, <span class="text-gradient">in one place</span></h2>
+  </div>
+
+  <div class="card-grid fx-stagger">
+    <div class="card">
+      <div class="card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="4" width="14" height="17" rx="2.5"/>
+          <rect x="9" y="2.5" width="6" height="3" rx="1"/>
+          <polyline points="8.5 12.5 11 15 16 9.5"/>
+        </svg>
+      </div>
+      <h2>Attendance</h2>
+      <p>Digital attendance with auto-late detection.</p>
+      <a href="attendance.html">View <span class="arrow">→</span></a>
+    </div>
+    <div class="card">
+      <div class="card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 16v-5a6 6 0 0 0-12 0v5l-2 3h16z"/>
+          <path d="M9.5 19a2.5 2.5 0 0 0 5 0"/>
+        </svg>
+      </div>
+      <h2>Announcements</h2>
+      <p>Official school notices and pubmats.</p>
+      <a href="announcements.html">View <span class="arrow">→</span></a>
+    </div>
+    <div class="card">
+      <div class="card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="10.5" cy="10.5" r="6.5"/>
+          <line x1="15.5" y1="15.5" x2="20.5" y2="20.5"/>
+        </svg>
+      </div>
+      <h2>Lost &amp; Found</h2>
+      <p>Browse reported lost and found items.</p>
+      <a href="lost-and-found.html">View <span class="arrow">→</span></a>
+    </div>
+    <div class="card">
+      <div class="card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/>
+          <line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/>
+          <line x1="8" y1="2.5" x2="8" y2="6.5"/>
+          <line x1="16" y1="2.5" x2="16" y2="6.5"/>
+          <circle cx="15.5" cy="15" r="3.2"/>
+          <polyline points="15.5 13.5 15.5 15 16.6 15.6"/>
+        </svg>
+      </div>
+      <h2>Calendar &amp; History</h2>
+      <p>School events and an interactive historical timeline.</p>
+      <a href="calendar-history.html">View <span class="arrow">→</span></a>
+    </div>
+    <div class="card">
+      <div class="card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 6a2.5 2.5 0 0 1 2.5-2.5h11A2.5 2.5 0 0 1 20 6v7.5A2.5 2.5 0 0 1 17.5 16H11l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5z"/>
+          <text x="12" y="12.4" font-family="sans-serif" font-size="7" fill="currentColor" stroke="none" text-anchor="middle" dominant-baseline="middle">?</text>
+        </svg>
+      </div>
+      <h2>FAQs</h2>
+      <p>Answers to commonly asked questions.</p>
+      <a href="faqs.html">View <span class="arrow">→</span></a>
+    </div>
+    <div class="card">
+      <div class="card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="8" r="3"/>
+          <path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/>
+          <circle cx="17" cy="9" r="2.4"/>
+          <path d="M15.8 13.2c2.4.2 4.2 2 4.2 4.3"/>
+        </svg>
+      </div>
+      <h2>Clubs</h2>
+      <p>Student organizations and activities.</p>
+      <a href="clubs.html">View <span class="arrow">→</span></a>
+    </div>
+    <div class="card">
+      <div class="card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="5.5" width="17" height="13" rx="2.2"/>
+          <circle cx="9" cy="11" r="2"/>
+          <path d="M6 15.3c0-1.6 1.3-2.6 3-2.6s3 1 3 2.6"/>
+          <line x1="14.5" y1="9.5" x2="18" y2="9.5"/>
+          <line x1="14.5" y1="12.5" x2="18" y2="12.5"/>
+        </svg>
+      </div>
+      <h2>Staff Directory</h2>
+      <p>Teaching and non-teaching personnel.</p>
+      <a href="staff-directory.html">View <span class="arrow">→</span></a>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-top">
+    <div>
+      <a class="footer-logo" href="index.html">
+        <img src="logo.png" alt="PCSHS logo">
+        <span class="footer-brand-text">
+          <span class="footer-brand-name">C.A.S.S.I.E.</span>
+          <span class="footer-brand-sub">Pasig City Science High School</span>
+        </span>
+      </a>
+      <p class="footer-blurb">Centralized Academic and School Services Information Engine — one place for attendance, announcements, and everything Pascians need to know.</p>
+      <div class="footer-social">
+        <!-- Paste each real profile URL into the href="#" below. -->
+        <a href="#" class="footer-social-link" aria-label="Facebook" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h-2a5 5 0 0 0-5 5v3H6v4h2v6h4v-6h3l1-4h-4V8a1 1 0 0 1 1-1h3z"/></svg>
+        </a>
+        <a href="#" class="footer-social-link" aria-label="Instagram" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1"/></svg>
+        </a>
+        <a href="#" class="footer-social-link" aria-label="TikTok" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v9.5a3.5 3.5 0 1 1-3-3.46"/><path d="M14 4c.5 2.5 2.2 4.2 4.5 4.5"/></svg>
+        </a>
+        <a href="#" class="footer-social-link" aria-label="YouTube" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="4"/><path d="M11 9.5l4 2.5-4 2.5z" fill="currentColor" stroke="none"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="footer-col">
+      <span class="footer-col-title">Explore</span>
+      <a href="index.html">Dashboard</a>
+      <a href="attendance.html">Attendance</a>
+      <a href="reports.html">Reports</a>
+      <a href="announcements.html">Announcements</a>
+      <a href="lost-and-found.html">Lost &amp; Found</a>
+    </div>
+
+    <div class="footer-col">
+      <span class="footer-col-title">Resources</span>
+      <a href="calendar-history.html">Calendar &amp; History</a>
+      <a href="faqs.html">FAQs</a>
+      <a href="clubs.html">Clubs</a>
+      <a href="staff-directory.html">Staff Directory</a>
+      <a href="login.html">Staff Login</a>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <p>&copy; <span id="footer-year">2026</span> Pasig City Science High School — C.A.S.S.I.E.</p>
+    <a href="#top" class="footer-top-link">Back to top <span class="arrow-up">↑</span></a>
+  </div>
+</footer>
+<script>document.getElementById("footer-year").textContent = new Date().getFullYear();</script>
+
+<script type="module" src="dashboard.js"></script>
+<script type="module" src="auth-ui.js"></script>
+<script src="nav.js"></script>
+<script type="module" src="suspension-banner.js"></script>
+<script src="theme.js"></script>
+</body>
+</html>
