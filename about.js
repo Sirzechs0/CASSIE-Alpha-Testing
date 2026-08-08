@@ -108,6 +108,15 @@ const coursesBody = document.getElementById("courses-body");
 const admissionBody = document.getElementById("admission-body");
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────
+// The role check (needs Firestore) and the page content load (also needs
+// Firestore) run at the same time, independently. Both set a "ready" flag
+// and only call renderAll() once BOTH are ready — so the very first render
+// always has the correct isAdminOrStaff value, instead of possibly
+// rendering once early (with isAdminOrStaff still at its default false)
+// if the content finishes loading before the role check comes back.
+let authReady = false;
+let dataReady = false;
+
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     isAdminOrStaff = false;
@@ -116,36 +125,44 @@ onAuthStateChanged(auth, async (user) => {
       const snap = await getDoc(doc(db, "users", user.uid));
       const role = snap.exists() ? snap.data().role : null;
       isAdminOrStaff = role === "admin" || role === "staff";
-    } catch {
+    } catch (err) {
+      console.error("about.js: role check failed:", err);
       isAdminOrStaff = false;
     }
   }
-  renderAll();
+  authReady = true;
+  if (dataReady) renderAll();
 });
 
 async function loadData() {
   try {
     const snap = await getDoc(doc(db, "siteContent", "about"));
     pageData = mergeWithDefaults(DEFAULTS, snap.exists() ? snap.data() : null);
-  } catch {
+  } catch (err) {
+    console.error("about.js: loading siteContent/about failed:", err);
     pageData = mergeWithDefaults(DEFAULTS, null);
   }
-  renderAll();
+  dataReady = true;
+  if (authReady) renderAll();
 }
 
-// Called after either auth or data resolves — whichever finishes first is a
-// no-op until the other one is also ready (guarded by the pageData check).
+// Renders every section. Each one runs in its own try/catch so a problem
+// in one section (bad data shape, missing element, etc.) can't stop the
+// rest of the page — or their edit buttons — from rendering too.
 function renderAll() {
   if (!pageData) return;
-  renderHeroView();
-  renderPurposeView();
-  renderAboutView();
-  renderHistoryView();
-  renderSymbolsView();
-  renderAwardsView();
-  renderOrgChartView();
-  renderCoursesView();
-  renderAdmissionView();
+  const sections = [
+    renderHeroView, renderPurposeView, renderAboutView, renderHistoryView,
+    renderSymbolsView, renderAwardsView, renderOrgChartView, renderCoursesView,
+    renderAdmissionView,
+  ];
+  for (const renderSection of sections) {
+    try {
+      renderSection();
+    } catch (err) {
+      console.error(`about.js: ${renderSection.name} failed:`, err);
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════

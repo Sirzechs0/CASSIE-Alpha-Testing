@@ -21,7 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ├── reports.html/js            # Attendance analytics, calendars, leaderboards
 ├── announcements.html/js      # Image-based announcements with CRUD
 ├── lost-and-found.html/js     # Lost/Found reports with CRUD
-├── calendar-history.html      # School events + historical timeline
+├── about.html/js              # About page: hero, history, symbols, admissions — per-section admin edit
 ├── faqs.html/js               # FAQ accordion
 ├── clubs.html                 # Student organizations
 ├── staff-directory.html       # Personnel listing
@@ -46,11 +46,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `announcements` | Image posts with captions | `imageUrls[]`, `caption`, `postedBy`, `timestamp` |
 | `lostAndFound` | Lost/found item reports | `type` (lost/found), `title`, `description`, `location`, `date`, `contact`, `imageUrls[]` |
 | `users` | Staff accounts with roles | `role` (admin/staff/secretary), `assignedSections[]` (for secretaries) |
+| `siteContent` | Admin-editable content pages, one doc per page (e.g. `siteContent/about`) | one top-level field per page section — see about.js `DEFAULTS` for the full shape |
 
 ### Roles & Permissions
-- **Admin/Staff**: Full CRUD on all modules, can import PDFs, delete sections
+- **Admin/Staff**: Full CRUD on all modules, can import PDFs, delete sections, edit the About page
 - **Secretary**: Can mark attendance only for assigned sections (set in user doc)
-- **Public**: Read-only access to announcements, lost & found, calendar, FAQs, clubs, staff directory
+- **Public**: Read-only access to announcements, lost & found, About, FAQs, clubs, staff directory
 
 ## Development
 
@@ -95,6 +96,13 @@ Nearly identical CRUD patterns:
 - Edit modal preserves existing images, allows adding new ones
 - Themed confirm modal (replaces `window.confirm`)
 
+### About (`about.js`)
+Public content page (hero, vision/mission, history timeline, symbols, awards, org chart, courses, admission process) backed by a single Firestore document, `siteContent/about`. Different pattern from Announcements/Lost & Found — no modal:
+- Every field starts out as Lorem Ipsum / bracketed `[Placeholder]` text (see `DEFAULTS` at the top of the file) until an admin overwrites it — the page never looks empty on a fresh project.
+- Each of the 9 sections (hero, purpose, about, history, symbols, awards, orgChart, courses, admission) edits and saves **independently**: admin/staff see a small "✎ Edit" button per section; clicking it swaps just that section into an inline form, and Save writes only that one top-level field via `setDoc(..., {merge:true})` — editing History can't touch Admission's saved data.
+- Two shared list-editor helpers (`renderStringListEditor`, `renderObjectListEditor`) back every add/remove list in the file (fast facts, electives, symbols, awards, principals, org chart, admission steps) — extend those rather than writing a new one-off editor if another list field gets added later.
+- Images (hero background, a symbol's photo, an org chart member's photo) go through the same ImgBB pattern as Announcements/Lost & Found, via `buildImagePicker()` / `resolveImage()`.
+
 ### Auth Flow
 `auth-ui.js` runs on every page: listens to `onAuthStateChanged`, swaps "Log In" ↔ "Log Out" in header. Role checks happen per-page (e.g., `attendance.js` reads `users/{uid}.role`).
 
@@ -131,7 +139,7 @@ firebase deploy --only firestore:rules
 ## File Conventions
 
 - **ES Modules**: All `.js` files use `import`/`export` and are loaded with `<script type="module">`
-- **Shared DOM IDs**: `login-link`, `logout-button`, `theme-toggle`, `nav-toggle`, `suspension-banner`, `confirm-modal` — present on every page
+- **Shared DOM IDs**: `login-link`, `logout-button`, `theme-toggle`, `nav-toggle`, `suspension-banner` — present on every page. `confirm-modal` is present on every page EXCEPT `about.html`, which doesn't need one — its edits aren't committed until Save, so Cancel can just discard the draft without a confirmation dialog.
 - **CSS**: Single `style.css` with design tokens (colors, spacing, typography) as CSS custom properties
 - **Comments**: Heavy inline documentation explaining *why*, not just *what*
 
@@ -141,5 +149,5 @@ firebase deploy --only firestore:rules
 - **Firebase SDK from CDN** — version pinned to 12.15.0 in all imports. Update all files together if upgrading.
 - **Attendance date key format**: `{sectionId}_${YYYY-MM-DD}` (e.g., `grade12_bernoulli_2026-07-27`)
 - **Secretary role** only exists in `attendance.js` — other pages treat secretaries as regular users (no admin tools).
-- **ImgBB API key** is hardcoded in two files. Rotate in both places if needed.
+- **ImgBB API key** is hardcoded in three files (`announcements.js`, `lost-and-found.js`, `about.js`). Rotate in all three if needed.
 - **PDF.js worker** configured in `attendance.js:16-18` — must match pdf.js version.

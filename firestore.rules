@@ -51,6 +51,19 @@ service cloud.firestore {
       allow create, update, delete: if isStaffOrAdmin();
     }
 
+    // Site content pages (About, etc.) — one doc per page, e.g. siteContent/about.
+    // Public read, admin/staff write only. This block was missing entirely,
+    // which is why About-page edits failed with "Missing or insufficient
+    // permissions" — with no match block for a collection, Firestore denies
+    // it by default. about.js saves each section with setDoc(..., {merge:
+    // true}), which Firestore evaluates as a "create" the very first time a
+    // page doc is saved and as an "update" every save after that — both are
+    // covered here so neither path gets silently rejected.
+    match /siteContent/{pageId} {
+      allow read: if true;
+      allow create, update, delete: if isStaffOrAdmin();
+    }
+
     // Class lists (sections + students) — public read, admin/staff write only.
     // Secretaries can VIEW their section's roster but cannot import, edit,
     // or delete it — that responsibility stays with admin/staff.
