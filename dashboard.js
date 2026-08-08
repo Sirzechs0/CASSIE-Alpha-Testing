@@ -1,17 +1,17 @@
 // dashboard.js
-// Shows the most recent real announcement as the dashboard's hero banner.
-// If there are no announcements yet, the generic welcome message
-// (already in the HTML) just stays visible instead.
+// Shows up to 3 of the most recent announcements as small horizontal cards
+// below the welcome block, plus a "See All" link to the Announcements page.
+// The welcome block (title + View Attendance / See Announcements buttons)
+// is always visible now — this section only appears IN ADDITION to it when
+// there's actually at least one announcement to show.
 
 import { db } from "./firebase-config.js";
 import {
   collection, query, orderBy, limit, getDocs, getCountFromServer
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
-const hero = document.getElementById("hero");
-const heroFallback = document.getElementById("hero-fallback");
-const heroImage = document.getElementById("hero-image");
-const heroTitle = document.getElementById("hero-title");
+const dashAnnouncements     = document.getElementById("dash-announcements");
+const dashAnnouncementsList = document.getElementById("dash-announcements-list");
 
 const statStudents      = document.getElementById("stat-students");
 const statSections      = document.getElementById("stat-sections");
@@ -22,10 +22,7 @@ const prefersReducedMotion =
   window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Counts a stat number up from 0 to its real value instead of just
-// snapping to it — a small "the page is coming alive" touch for the same
-// numbers-as-hero idea the stats bar already borrows its layout from.
-// Skipped entirely (value just set directly) if the visitor has asked
-// their system for reduced motion.
+// snapping to it. Skipped (value just set directly) under reduced motion.
 function animateStat(el, target) {
   if (!el) return;
   const value = Number(target) || 0;
@@ -45,46 +42,95 @@ function animateStat(el, target) {
   requestAnimationFrame(tick);
 }
 
-// The 4th card ("Modules Online") is a fixed number already in the HTML —
-// animate it in too, on load, for the same "counting up" moment as the
-// other three once their real data arrives.
 if (statModules) animateStat(statModules, statModules.textContent);
 
-async function loadLatestAnnouncement() {
+// Same shape-normalizing helper as announcements.js: older posts saved a
+// single `imageUrl` string, new posts save an `imageUrls` array. Images are
+// optional either way — an empty array is a normal, expected result.
+function getImageUrls(data) {
+  if (Array.isArray(data.imageUrls) && data.imageUrls.length > 0) return data.imageUrls;
+  if (data.imageUrl) return [data.imageUrl];
+  return [];
+}
+
+// Small date line under the title: the event's own date if one was set,
+// otherwise the date it was posted.
+function formatCardDate(data) {
+  let dateObj = null;
+  if (data.eventDate) {
+    const [y, m, d] = data.eventDate.split("-").map(Number);
+    if (y && m && d) dateObj = new Date(y, m - 1, d);
+  }
+  if (!dateObj && data.timestamp && typeof data.timestamp.toDate === "function") {
+    dateObj = data.timestamp.toDate();
+  }
+  return dateObj ? dateObj.toLocaleDateString("en-PH", { month: "short", day: "numeric" }) : "";
+}
+
+// Every card links to the Announcements page itself — there's no
+// per-announcement detail view in this app, so that's also where "See All"
+// points to.
+function buildDashAnnouncementCard(data) {
+  const images = getImageUrls(data);
+  const hasRealTitle = !!(data.title && data.title.trim());
+  const displayTitle = hasRealTitle ? data.title.trim() : ((data.caption || "").trim() || "Announcement");
+
+  const card = document.createElement("a");
+  card.className = "dash-announce-card";
+  card.href = "announcements.html";
+
+  const media = document.createElement("div");
+  media.className = "dash-announce-card-media";
+  if (images.length > 0) {
+    const img = document.createElement("img");
+    img.src = images[0];
+    img.alt = "";
+    img.loading = "lazy";
+    media.appendChild(img);
+  } else {
+    media.classList.add("dash-announce-card-media-empty");
+    media.textContent = "📌";
+  }
+  card.appendChild(media);
+
+  const body = document.createElement("div");
+  body.className = "dash-announce-card-body";
+
+  const title = document.createElement("span");
+  title.className = "dash-announce-card-title";
+  title.textContent = displayTitle;
+  body.appendChild(title);
+
+  const dateText = formatCardDate(data);
+  if (dateText) {
+    const date = document.createElement("span");
+    date.className = "dash-announce-card-date";
+    date.textContent = dateText;
+    body.appendChild(date);
+  }
+
+  card.appendChild(body);
+  return card;
+}
+
+async function loadLatestAnnouncements() {
+  if (!dashAnnouncements || !dashAnnouncementsList) return;
   try {
-    // Announcements now optionally skip photos entirely (a text-only
-    // notice), but this hero specifically needs an image to show — so
-    // instead of just grabbing the single latest post, this scans the 5
-    // most recent ones for the first that actually has one.
-    const q = query(collection(db, "announcements"), orderBy("timestamp", "desc"), limit(5));
+    const q = query(collection(db, "announcements"), orderBy("timestamp", "desc"), limit(3));
     const snapshot = await getDocs(q);
+    if (snapshot.empty) return; // nothing posted yet — block stays hidden
 
-    if (snapshot.empty) return; // keep showing the generic welcome message
-
-    let data = null, firstImage = null;
-    for (const docSnap of snapshot.docs) {
-      const d = docSnap.data();
-      // New posts store an array (imageUrls); older posts may still have a
-      // single imageUrl string — fall back so old announcements still render.
-      const img = Array.isArray(d.imageUrls) && d.imageUrls.length > 0 ? d.imageUrls[0] : d.imageUrl;
-      if (img) { data = d; firstImage = img; break; }
-    }
-    if (!data) return; // none of the recent posts have a photo — keep the fallback welcome message
-
-    heroImage.src = firstImage;
-    heroImage.alt = data.title || data.caption || "Latest announcement";
-    heroTitle.textContent = data.title || data.caption || "New Announcement";
-
-    hero.hidden = false;
-    heroFallback.hidden = true;
+    dashAnnouncementsList.innerHTML = "";
+    snapshot.docs.forEach((docSnap) => {
+      dashAnnouncementsList.appendChild(buildDashAnnouncementCard(docSnap.data()));
+    });
+    dashAnnouncements.hidden = false;
   } catch (error) {
-    // If anything goes wrong, the fallback welcome message is already showing — do nothing.
+    // Leave the block hidden — not worth surfacing an error banner over.
   }
 }
 
-// ---------- Stats bar: sections + students (denormalized on each section
-// doc already, so this is one cheap read — no per-student subcollection
-// queries needed) plus a server-side count of announcements. ----------
+// ---------- Stats bar ----------
 async function loadDashboardStats() {
   try {
     const sectionsSnap = await getDocs(collection(db, "sections"));
@@ -96,15 +142,13 @@ async function loadDashboardStats() {
     if (statSections) animateStat(statSections, sectionsSnap.size);
     if (statStudents) animateStat(statStudents, totalStudents);
   } catch (error) {
-    // Leave the placeholder dash showing — this bar is a nice-to-have,
-    // not worth surfacing an error banner over.
+    // Leave the placeholder dash showing.
   }
 
   try {
     const countSnap = await getCountFromServer(collection(db, "announcements"));
     if (statAnnouncements) animateStat(statAnnouncements, countSnap.data().count);
   } catch (error) {
-    // Older SDKs/rules without count support fall back to a full read.
     try {
       const snap = await getDocs(collection(db, "announcements"));
       if (statAnnouncements) animateStat(statAnnouncements, snap.size);
@@ -114,5 +158,5 @@ async function loadDashboardStats() {
   }
 }
 
-loadLatestAnnouncement();
+loadLatestAnnouncements();
 loadDashboardStats();

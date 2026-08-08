@@ -465,47 +465,99 @@ a:hover { text-decoration: underline; }
   .brand-name { font-size: 0.9rem; }
 }
 
-/* ---------- Dashboard hero ---------- */
-.hero {
-  position: relative;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  margin-bottom: 40px;
-  overflow: hidden;
-  box-shadow: 0 18px 40px var(--shadow);
-}
-.hero::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: var(--accent-1);
-  z-index: 2;
-}
-.hero-image-wrap { width: 100%; aspect-ratio: 16 / 7; overflow: hidden; background: var(--surface-2); }
-.hero-image-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.6s var(--ease); }
-.hero:hover .hero-image-wrap img { transform: scale(1.04); }
-.hero-body { padding: 30px 32px 34px; }
-.hero-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+/* ---------- Dashboard: latest announcements (compact list + See All) ----------
+   Shown only when at least one announcement exists — up to 3 small
+   horizontal cards below the welcome block/buttons, plus a "See All" link.
+   Replaces the old single full-bleed photo hero. */
+.dash-announcements-block { margin-bottom: 40px; }
+.dash-announcements-heading {
+  display: block;
   font-family: var(--font-mono);
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  border: 1px solid var(--line);
-  background: var(--surface-2);
-  border-radius: var(--radius-pill);
-  padding: 6px 14px;
-  margin-bottom: 16px;
   color: var(--accent-1);
+  margin-bottom: 12px;
 }
-.hero-tag::before { content: ""; width: 5px; height: 5px; background: var(--accent-1); }
-.hero-body h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(1.5rem, 2vw + 1rem, 2rem); margin: 0 0 10px; letter-spacing: -0.005em; }
-.hero-body p { color: var(--muted); margin: 0 0 22px; font-size: 0.96rem; }
+.dash-announcements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.dash-announce-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  transition: border-color 0.18s var(--ease), background-color 0.18s var(--ease), transform 0.15s var(--ease);
+}
+.dash-announce-card:hover {
+  border-color: var(--accent-1);
+  background: var(--surface-hover);
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+.dash-announce-card-media {
+  flex: 0 0 52px;
+  width: 52px; height: 52px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.dash-announce-card-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dash-announce-card-media-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  opacity: 0.5;
+}
+.dash-announce-card-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.dash-announce-card-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dash-announce-card-date {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--muted-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.dash-announcements-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 11px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+  color: var(--accent-1);
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: border-color 0.18s var(--ease), background-color 0.18s var(--ease);
+}
+.dash-announcements-more:hover {
+  border-color: var(--accent-1);
+  background: var(--gradient-soft);
+  text-decoration: none;
+}
 
 a.btn-primary { display: inline-block; text-decoration: none; }
 

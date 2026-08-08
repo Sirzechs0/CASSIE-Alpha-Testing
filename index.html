@@ -75,18 +75,6 @@
 </header>
 
 <main>
-  <div id="hero" class="hero fx-rise-in" hidden>
-    <div class="hero-image-wrap">
-      <img id="hero-image" src="" alt="">
-    </div>
-    <div class="hero-body">
-      <span class="hero-tag">Latest Announcement</span>
-      <h1 id="hero-title"></h1>
-      <p id="hero-caption">Posted on the Announcements page — check it out for the full details.</p>
-      <a href="announcements.html" class="btn-primary">View All Announcements <span class="arrow">→</span></a>
-    </div>
-  </div>
-
   <div id="hero-fallback" class="page-header hero-block fx-rise-in">
     <span class="eyebrow">Pasig City Science High School</span>
     <h1>Welcome to <span class="text-gradient">C.A.S.S.I.E.</span></h1>
@@ -96,6 +84,12 @@
       <a href="announcements.html" class="btn-secondary">See Announcements</a>
     </div>
     <span class="scroll-cue">Explore</span>
+  </div>
+
+  <div id="dash-announcements" class="dash-announcements-block" hidden>
+    <span class="dash-announcements-heading">Latest Announcements</span>
+    <div id="dash-announcements-list" class="dash-announcements-list fx-stagger"></div>
+    <a href="announcements.html" class="dash-announcements-more">See All Announcements <span class="arrow">→</span></a>
   </div>
 
   <div class="stats-bar fx-stagger" id="dash-stats">
