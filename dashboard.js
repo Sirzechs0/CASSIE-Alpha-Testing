@@ -52,23 +52,28 @@ if (statModules) animateStat(statModules, statModules.textContent);
 
 async function loadLatestAnnouncement() {
   try {
-    const q = query(collection(db, "announcements"), orderBy("timestamp", "desc"), limit(1));
+    // Announcements now optionally skip photos entirely (a text-only
+    // notice), but this hero specifically needs an image to show — so
+    // instead of just grabbing the single latest post, this scans the 5
+    // most recent ones for the first that actually has one.
+    const q = query(collection(db, "announcements"), orderBy("timestamp", "desc"), limit(5));
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) return; // keep showing the generic welcome message
 
-    const data = snapshot.docs[0].data();
-
-    // New posts store an array (imageUrls); older posts may still have a
-    // single imageUrl string — fall back so old announcements still render.
-    const firstImage = Array.isArray(data.imageUrls) && data.imageUrls.length > 0
-      ? data.imageUrls[0]
-      : data.imageUrl;
-    if (!firstImage) return; // nothing to show — keep the fallback welcome message
+    let data = null, firstImage = null;
+    for (const docSnap of snapshot.docs) {
+      const d = docSnap.data();
+      // New posts store an array (imageUrls); older posts may still have a
+      // single imageUrl string — fall back so old announcements still render.
+      const img = Array.isArray(d.imageUrls) && d.imageUrls.length > 0 ? d.imageUrls[0] : d.imageUrl;
+      if (img) { data = d; firstImage = img; break; }
+    }
+    if (!data) return; // none of the recent posts have a photo — keep the fallback welcome message
 
     heroImage.src = firstImage;
-    heroImage.alt = data.caption || "Latest announcement";
-    heroTitle.textContent = data.caption || "New Announcement";
+    heroImage.alt = data.title || data.caption || "Latest announcement";
+    heroTitle.textContent = data.title || data.caption || "New Announcement";
 
     hero.hidden = false;
     heroFallback.hidden = true;

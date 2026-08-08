@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ├── index.html                 # Dashboard (landing page)
 ├── attendance.html/js         # Attendance marking + PDF class list import
 ├── reports.html/js            # Attendance analytics, calendars, leaderboards
-├── announcements.html/js      # Image-based announcements with CRUD
+├── announcements.html/js      # Searchable event timeline with CRUD (images optional)
 ├── lost-and-found.html/js     # Lost/Found reports with CRUD
 ├── about.html/js              # About page: hero, history, symbols, admissions — per-section admin edit
 ├── faqs.html/js               # FAQ accordion
@@ -44,7 +44,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `sections` | Class sections (grade, name, adviser, room, maleCount, femaleCount) | `grade`, `name`, `adviser`, `room`, `maleCount`, `femaleCount` |
 | `sections/{sectionId}/students` | Student roster per section | `no`, `name`, `gender` (M/F) |
 | `attendance` | Daily attendance records, keyed `{sectionId}_{YYYY-MM-DD}` | `sectionId`, `date`, `records` (map of studentId → {status, timeIn}) |
-| `announcements` | Image posts with captions | `imageUrls[]`, `caption`, `postedBy`, `timestamp` |
+| `announcements` | Event-style timeline posts — title, optional schedule/location/audience, tags, optional images | `title`, `caption`, `tags[]`, `eventDate`, `eventTime`, `location`, `audience`, `imageUrls[]`, `postedBy`, `timestamp` |
 | `lostAndFound` | Lost/found item reports | `type` (lost/found), `title`, `description`, `location`, `date`, `contact`, `imageUrls[]` |
 | `users` | Staff accounts with roles | `role` (admin/staff/secretary), `assignedSections[]` (for secretaries) |
 | `siteContent` | Admin-editable content pages, one doc per page (e.g. `siteContent/about`) | one top-level field per page section — see about.js `DEFAULTS` for the full shape |
@@ -92,10 +92,13 @@ Then open `http://localhost:3000` (or whatever port).
 - Per-student monthly summary table
 - School-wide leaderboards (day/week/month) by absence/late/present rates
 
-### Announcements & Lost & Found
-Nearly identical CRUD patterns:
+### Announcements (`announcements.js`)
+Rendered as a vertical timeline (`.event-item`/`.event-card` in `style.css`), not the masonry grid Lost & Found still uses below. Each post has a title (required), optional event date/time/location/audience, optional tags, and OPTIONAL images — a placeholder box (`.event-media-placeholder`) shows when there are none. Long descriptions (`-webkit-line-clamp`) and multi-image galleries collapse behind a "Learn More" toggle — see `buildEventCard()` / `renderEventMedia()`. A page-local search box (`#announcement-search`) filters the already-loaded posts client-side by title/description/tags/location/audience (same pattern as the FAQ search); clicking a tag chip re-runs that same search for the tag. A small "Past" badge appears once `eventDate` is before today. Image upload still goes through ImgBB (base64 → POST), same as Lost & Found.
+
+### Lost & Found (`lost-and-found.js`)
+Unchanged CRUD pattern, still separate from Announcements' timeline:
 - Image upload via ImgBB (base64 → POST)
-- Multi-image support with collage preview (4 shown, +N overlay)
+- Multi-image support with collage preview (4 shown, +N overlay) via the original `.feed-grid`/`.announcement-card`/`.announcement-media` classes in `style.css`
 - Lightbox for full-size viewing
 - Edit modal preserves existing images, allows adding new ones
 - Themed confirm modal (replaces `window.confirm`)
@@ -155,3 +158,6 @@ firebase deploy --only firestore:rules
 - **Secretary role** only exists in `attendance.js` — other pages treat secretaries as regular users (no admin tools).
 - **ImgBB API key** is hardcoded in three files (`announcements.js`, `lost-and-found.js`, `about.js`). Rotate in all three if needed.
 - **PDF.js worker** configured in `attendance.js:16-18` — must match pdf.js version.
+- **Announcements images are optional** — `getImageUrls(data)` can return an empty array; always check `.length` before assuming a cover photo exists (see the placeholder fallback in `renderEventMedia()`).
+- **Dashboard hero** (`dashboard.js`) scans the 5 most recent announcements for the first one WITH a photo, since images are now optional — it won't necessarily feature the literal latest post if that one happens to be text-only.
+- **`style.css` uses CRLF line endings throughout** — if editing by hand (not through Claude), keep new additions consistent or the file will end up with mixed line endings.

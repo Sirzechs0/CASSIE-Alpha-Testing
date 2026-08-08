@@ -67,24 +67,53 @@
   <div class="page-header fx-rise-in">
     <span class="eyebrow">MODULE — ANNOUNCEMENTS</span>
     <h1>Our <span class="text-gradient">Announcements</span></h1>
-    <p>Official school notices and staff-uploaded pubmats.</p>
+    <p>Official school notices, events, and staff-uploaded pubmats.</p>
   </div>
 
   <div id="upload-section" class="form-card" hidden>
     <h2>Post a New Announcement</h2>
     <form id="upload-form">
       <div class="form-field">
-        <label for="pubmat-caption">Caption (optional)</label>
-        <input type="text" id="pubmat-caption" placeholder="e.g. Foundation Day schedule">
+        <label for="event-title">Title</label>
+        <input type="text" id="event-title" required placeholder="e.g. Foundation Day Schedule">
+      </div>
+
+      <div class="import-meta-grid">
+        <div class="form-field">
+          <label for="event-date">Event Date <span class="field-optional">(optional)</span></label>
+          <input type="date" id="event-date">
+        </div>
+        <div class="form-field">
+          <label for="event-time">Time <span class="field-optional">(optional)</span></label>
+          <input type="text" id="event-time" placeholder="e.g. 1:00 PM – 4:30 PM">
+        </div>
+        <div class="form-field">
+          <label for="event-location">Location <span class="field-optional">(optional)</span></label>
+          <input type="text" id="event-location" placeholder="e.g. Media Room, 2nd Floor">
+        </div>
+        <div class="form-field">
+          <label for="event-audience">Audience <span class="field-optional">(optional)</span></label>
+          <input type="text" id="event-audience" placeholder="e.g. Open to All Students">
+        </div>
       </div>
 
       <div class="form-field">
-        <label>Pubmat Images</label>
+        <label for="event-tags">Tags <span class="field-optional">(optional)</span></label>
+        <input type="text" id="event-tags" placeholder="e.g. Workshop, Photography — separate with commas">
+      </div>
+
+      <div class="form-field">
+        <label for="event-description">Description <span class="field-optional">(optional)</span></label>
+        <textarea id="event-description" rows="3" placeholder="Add more details about this announcement..."></textarea>
+      </div>
+
+      <div class="form-field">
+        <label>Images <span class="field-optional">(optional)</span></label>
         <div id="upload-dropzone" class="upload-dropzone">
-          <span id="upload-dropzone-text">📷 Click to choose photos, or drag them here — you can add more than one</span>
+          <span id="upload-dropzone-text">📷 Click to choose photos, or drag them here — skip this if it's a text-only notice</span>
           <div id="upload-preview-grid" class="upload-preview-grid" hidden></div>
         </div>
-        <input type="file" id="pubmat-file" accept="image/*" multiple hidden>
+        <input type="file" id="event-photos" accept="image/*" multiple hidden>
       </div>
 
       <button type="submit" id="upload-button" class="btn-primary">Post Announcement</button>
@@ -92,8 +121,12 @@
     <p id="upload-status" class="status-text"></p>
   </div>
 
+  <div class="announcements-search fx-rise-in">
+    <input type="text" id="announcement-search" placeholder="Search by title, tag, or location...">
+  </div>
+
   <p id="feed-count" class="feed-count"></p>
-  <div id="announcements-feed" class="feed-grid fx-stagger">
+  <div id="announcements-feed" class="event-timeline fx-stagger">
     <p class="muted">Loading announcements...</p>
   </div>
 </main>
@@ -158,11 +191,41 @@
   <div class="modal-box">
     <h2>Edit Announcement</h2>
     <div class="form-field">
-      <label for="edit-caption">Caption</label>
-      <input type="text" id="edit-caption" placeholder="e.g. Foundation Day schedule">
+      <label for="edit-title">Title</label>
+      <input type="text" id="edit-title" placeholder="e.g. Foundation Day Schedule">
     </div>
+
+    <div class="import-meta-grid">
+      <div class="form-field">
+        <label for="edit-event-date">Event Date <span class="field-optional">(optional)</span></label>
+        <input type="date" id="edit-event-date">
+      </div>
+      <div class="form-field">
+        <label for="edit-event-time">Time <span class="field-optional">(optional)</span></label>
+        <input type="text" id="edit-event-time" placeholder="e.g. 1:00 PM – 4:30 PM">
+      </div>
+      <div class="form-field">
+        <label for="edit-location">Location <span class="field-optional">(optional)</span></label>
+        <input type="text" id="edit-location" placeholder="e.g. Media Room, 2nd Floor">
+      </div>
+      <div class="form-field">
+        <label for="edit-audience">Audience <span class="field-optional">(optional)</span></label>
+        <input type="text" id="edit-audience" placeholder="e.g. Open to All Students">
+      </div>
+    </div>
+
     <div class="form-field">
-      <label>Images</label>
+      <label for="edit-tags">Tags <span class="field-optional">(optional)</span></label>
+      <input type="text" id="edit-tags" placeholder="e.g. Workshop, Photography">
+    </div>
+
+    <div class="form-field">
+      <label for="edit-description">Description <span class="field-optional">(optional)</span></label>
+      <textarea id="edit-description" rows="3" placeholder="Add more details about this announcement..."></textarea>
+    </div>
+
+    <div class="form-field">
+      <label>Images <span class="field-optional">(optional)</span></label>
       <div id="edit-preview-grid" class="upload-preview-grid"></div>
       <div id="edit-dropzone" class="upload-dropzone">
         <span>📷 Click to add more photos, or drag them here</span>

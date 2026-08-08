@@ -1,9 +1,13 @@
 // announcements.js
-// Handles four things on the Announcements page:
+// Handles the Announcements page — a searchable timeline of school events
+// and notices, each with an optional date/time/location/audience/tags on
+// top of the original pubmat-image + caption format.
 //  1. Showing the upload form only if the logged-in user is admin/staff.
-//  2. Loading and displaying all announcements for everyone to see.
-//  3. Posting a new announcement with one or more images.
-//  4. Letting admin/staff edit or delete an existing announcement.
+//  2. Loading and displaying all announcements as a timeline, newest first.
+//  3. A page-local search bar that filters by title/description/tags/
+//     location/audience — works against any post, past or upcoming.
+//  4. Posting a new announcement with the fields above (images optional).
+//  5. Letting admin/staff edit or delete an existing announcement.
 
 import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
@@ -22,20 +26,35 @@ const uploadStatus  = document.getElementById("upload-status");
 const uploadButton  = document.getElementById("upload-button");
 const feedContainer = document.getElementById("announcements-feed");
 const feedCount     = document.getElementById("feed-count");
+const searchInput   = document.getElementById("announcement-search");
 
 const dropzone     = document.getElementById("upload-dropzone");
 const dropzoneText = document.getElementById("upload-dropzone-text");
-const fileInput    = document.getElementById("pubmat-file");
+const fileInput    = document.getElementById("event-photos");
 const previewGrid  = document.getElementById("upload-preview-grid");
 
-const editModal        = document.getElementById("edit-modal");
-const editCaptionInput = document.getElementById("edit-caption");
-const editPreviewGrid  = document.getElementById("edit-preview-grid");
-const editDropzone     = document.getElementById("edit-dropzone");
-const editFileInput    = document.getElementById("edit-file-input");
-const editStatus       = document.getElementById("edit-status");
-const editSaveBtn      = document.getElementById("edit-save-btn");
-const editCancelBtn    = document.getElementById("edit-cancel-btn");
+const eventTitleInput       = document.getElementById("event-title");
+const eventDateInput        = document.getElementById("event-date");
+const eventTimeInput        = document.getElementById("event-time");
+const eventLocationInput    = document.getElementById("event-location");
+const eventAudienceInput    = document.getElementById("event-audience");
+const eventTagsInput        = document.getElementById("event-tags");
+const eventDescriptionInput = document.getElementById("event-description");
+
+const editModal             = document.getElementById("edit-modal");
+const editTitleInput        = document.getElementById("edit-title");
+const editEventDateInput    = document.getElementById("edit-event-date");
+const editEventTimeInput    = document.getElementById("edit-event-time");
+const editLocationInput     = document.getElementById("edit-location");
+const editAudienceInput     = document.getElementById("edit-audience");
+const editTagsInput         = document.getElementById("edit-tags");
+const editDescriptionInput  = document.getElementById("edit-description");
+const editPreviewGrid       = document.getElementById("edit-preview-grid");
+const editDropzone          = document.getElementById("edit-dropzone");
+const editFileInput         = document.getElementById("edit-file-input");
+const editStatus            = document.getElementById("edit-status");
+const editSaveBtn           = document.getElementById("edit-save-btn");
+const editCancelBtn         = document.getElementById("edit-cancel-btn");
 
 const confirmModal     = document.getElementById("confirm-modal");
 const confirmTitleEl   = document.getElementById("confirm-title");
@@ -50,6 +69,15 @@ const lightboxCloseBtn = document.getElementById("lightbox-close");
 const lightboxPrevBtn  = document.getElementById("lightbox-prev");
 const lightboxNextBtn  = document.getElementById("lightbox-next");
 
+// A card's "Learn More" only appears when there's actually something extra
+// to reveal — either the description is long enough that it's likely
+// clipped at 3 lines, or there's more than one photo to show. This number
+// is a rough estimate (real overflow depends on screen width), so it's
+// intentionally set a bit low: showing the button when it isn't strictly
+// needed is a much smaller problem than hiding one that would have done
+// something.
+const EXPAND_LENGTH_THRESHOLD = 200;
+
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let isAdminOrStaff   = false;
 let allAnnouncements = null;   // null = not loaded yet
@@ -63,7 +91,8 @@ let lightboxIndex    = 0;
 
 // Older posts saved a single `imageUrl` string; new posts save an
 // `imageUrls` array. This normalizes either shape into an array so the
-// rest of the file only has to deal with one format.
+// rest of the file only has to deal with one format. Either way, images
+// are OPTIONAL now — an empty array is a normal, expected result.
 function getImageUrls(data) {
   if (Array.isArray(data.imageUrls) && data.imageUrls.length > 0) return data.imageUrls;
   if (data.imageUrl) return [data.imageUrl];
@@ -81,6 +110,41 @@ function formatPostedDate(timestamp) {
   const diffDay = Math.round(diffHr / 24);
   if (diffDay < 7) return `${diffDay}d ago`;
   return date.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+}
+
+// The prominent date badge above each card's title: the event's own date
+// if one was set, otherwise the date this was posted — so every card
+// always shows SOME date, even a plain text notice with no event details.
+function formatEventDateBadge(data) {
+  let dateObj = null;
+  if (data.eventDate) {
+    const [y, m, d] = data.eventDate.split("-").map(Number);
+    if (y && m && d) dateObj = new Date(y, m - 1, d);
+  }
+  if (!dateObj && data.timestamp && typeof data.timestamp.toDate === "function") {
+    dateObj = data.timestamp.toDate();
+  }
+  if (!dateObj) return "";
+  return dateObj.toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" });
+}
+
+// True only when a real eventDate was set AND it's before today — a plain
+// notice with no event date is never treated as "past."
+function isPastEvent(data) {
+  if (!data.eventDate) return false;
+  const [y, m, d] = data.eventDate.split("-").map(Number);
+  if (!y || !m || !d) return false;
+  const eventDay = new Date(y, m - 1, d);
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  return eventDay < todayStart;
+}
+
+function parseTags(raw) {
+  return (raw || "")
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
 }
 
 // Builds one removable thumbnail. `source` is a File (read via FileReader)
@@ -142,7 +206,7 @@ function addSelectedFiles(fileList) {
 
 function renderSelectedPreviews() {
   if (selectedFiles.length === 0) {
-    dropzoneText.textContent = "📷 Click to choose photos, or drag them here — you can add more than one";
+    dropzoneText.textContent = "📷 Click to choose photos, or drag them here — skip this if it's a text-only notice";
     previewGrid.hidden = true;
     previewGrid.innerHTML = "";
     return;
@@ -178,7 +242,7 @@ onAuthStateChanged(auth, async (user) => {
   renderFeed();
 });
 
-// ---------- Part 2: load + render the public feed ----------
+// ---------- Part 2: load + render the timeline ----------
 async function loadAnnouncements() {
   try {
     const q = query(collection(db, "announcements"), orderBy("timestamp", "desc"));
@@ -190,69 +254,151 @@ async function loadAnnouncements() {
   }
 }
 
+function matchesSearch(data, term) {
+  const haystack = [
+    data.title, data.caption, data.location, data.audience,
+    ...(Array.isArray(data.tags) ? data.tags : []),
+  ].filter(Boolean).join(" ").toLowerCase();
+  return haystack.includes(term);
+}
+
+function updateFeedCount(filteredCount, totalCount) {
+  if (totalCount === 0) { feedCount.textContent = ""; return; }
+  feedCount.textContent = filteredCount === totalCount
+    ? `${totalCount} announcement${totalCount > 1 ? "s" : ""}`
+    : `${filteredCount} of ${totalCount} announcement${totalCount > 1 ? "s" : ""}`;
+}
+
 function renderFeed() {
   if (allAnnouncements === null) return; // still loading
 
-  feedCount.textContent = allAnnouncements.length
-    ? `${allAnnouncements.length} announcement${allAnnouncements.length > 1 ? "s" : ""}`
-    : "";
-
   if (allAnnouncements.length === 0) {
+    feedCount.textContent = "";
     feedContainer.innerHTML = "<p class='muted'>No announcements yet.</p>";
     return;
   }
 
+  const term = searchInput.value.trim().toLowerCase();
+  const filtered = term ? allAnnouncements.filter((a) => matchesSearch(a, term)) : allAnnouncements;
+  updateFeedCount(filtered.length, allAnnouncements.length);
+
+  if (filtered.length === 0) {
+    feedContainer.innerHTML = "";
+    const msg = document.createElement("p");
+    msg.className = "muted";
+    msg.textContent = `No announcements match "${searchInput.value.trim()}". Try a different word, or clear the search to see everything.`;
+    feedContainer.appendChild(msg);
+    return;
+  }
+
   feedContainer.innerHTML = "";
-  allAnnouncements.forEach((data) => feedContainer.appendChild(buildAnnouncementCard(data)));
+  filtered.forEach((data) => feedContainer.appendChild(buildEventCard(data)));
 }
 
-function buildAnnouncementCard(data) {
+searchInput.addEventListener("input", renderFeed);
+
+// ---------- Building one timeline entry ----------
+function buildEventCard(data) {
   const images = getImageUrls(data);
+  const hasRealTitle = !!(data.title && data.title.trim());
+  // A post with no real title (only possible on data saved before this
+  // update) falls back to using its caption AS the title, so the timeline
+  // never shows a blank heading — but then the description below is left
+  // empty rather than repeating that same text a second time.
+  const displayTitle = hasRealTitle ? data.title.trim() : ((data.caption || "").trim() || "Announcement");
+  const displayDescription = hasRealTitle ? (data.caption || "").trim() : "";
+
+  const item = document.createElement("div");
+  item.className = "event-item";
+
+  const marker = document.createElement("div");
+  marker.className = "event-marker";
+  const dot = document.createElement("span");
+  dot.className = "event-dot";
+  marker.appendChild(dot);
+  item.appendChild(marker);
+
+  const content = document.createElement("div");
+  content.className = "event-content";
+
+  const dateText = formatEventDateBadge(data);
+  const past = isPastEvent(data);
+  if (dateText || past) {
+    const badge = document.createElement("div");
+    badge.className = "event-date-badge";
+    if (dateText) {
+      const span = document.createElement("span");
+      span.textContent = `📅 ${dateText}`;
+      badge.appendChild(span);
+    }
+    if (past) {
+      const pastTag = document.createElement("span");
+      pastTag.className = "event-past-tag";
+      pastTag.textContent = "Past";
+      badge.appendChild(pastTag);
+    }
+    content.appendChild(badge);
+  }
+
+  const titleEl = document.createElement("h2");
+  titleEl.className = "event-title";
+  titleEl.textContent = displayTitle;
+  content.appendChild(titleEl);
 
   const card = document.createElement("div");
-  card.className = "announcement-card";
+  card.className = "event-card";
 
-  if (images.length > 0) card.appendChild(buildMediaGrid(images, data.caption));
+  const mediaBox = document.createElement("div");
+  mediaBox.className = "event-card-media";
+  renderEventMedia(mediaBox, images, data, false);
+  card.appendChild(mediaBox);
 
   const body = document.createElement("div");
-  body.className = "announcement-body";
+  body.className = "event-card-body";
 
-  if (data.caption) {
-    const caption = document.createElement("p");
-    caption.className = "announcement-caption";
-    caption.textContent = data.caption;
-    body.appendChild(caption);
+  if (Array.isArray(data.tags) && data.tags.length) {
+    const tagsEl = document.createElement("div");
+    tagsEl.className = "event-tags";
+    data.tags.forEach((t) => {
+      const tag = document.createElement("span");
+      tag.className = "event-tag";
+      tag.textContent = t;
+      tag.title = `Search "${t}"`;
+      tag.addEventListener("click", () => {
+        searchInput.value = t;
+        renderFeed();
+        searchInput.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      tagsEl.appendChild(tag);
+    });
+    body.appendChild(tagsEl);
   }
 
-  const meta = document.createElement("div");
-  meta.className = "announcement-meta";
-
-  const author = document.createElement("span");
-  author.textContent = data.postedBy || "PCSHS SMS";
-  meta.appendChild(author);
-
-  const dateText = formatPostedDate(data.timestamp);
-  if (dateText) {
-    meta.appendChild(metaDot());
-    const dateSpan = document.createElement("span");
-    dateSpan.textContent = dateText;
-    meta.appendChild(dateSpan);
+  if (displayDescription) {
+    const descEl = document.createElement("p");
+    descEl.className = "event-description";
+    descEl.textContent = displayDescription;
+    body.appendChild(descEl);
   }
 
-  if (data.updatedAt) {
-    meta.appendChild(metaDot());
-    const editedSpan = document.createElement("span");
-    editedSpan.className = "announcement-edited";
-    editedSpan.textContent = "edited";
-    meta.appendChild(editedSpan);
-  }
+  const metaEl = buildMetaRows(data);
+  if (metaEl) body.appendChild(metaEl);
 
-  body.appendChild(meta);
+  const actions = document.createElement("div");
+  actions.className = "event-actions";
+
+  const canExpand = displayDescription.length > EXPAND_LENGTH_THRESHOLD || images.length > 1;
+  let expandBtn = null;
+  if (canExpand) {
+    expandBtn = document.createElement("button");
+    expandBtn.type = "button";
+    expandBtn.className = "btn-secondary event-expand-btn";
+    expandBtn.textContent = "Learn More ↓";
+    expandBtn.setAttribute("aria-expanded", "false");
+    actions.appendChild(expandBtn);
+  }
 
   if (isAdminOrStaff) {
-    const actions = document.createElement("div");
-    actions.className = "announcement-actions";
-
     const editBtn = document.createElement("button");
     editBtn.type = "button";
     editBtn.className = "announcement-action-btn";
@@ -267,18 +413,122 @@ function buildAnnouncementCard(data) {
 
     actions.appendChild(editBtn);
     actions.appendChild(deleteBtn);
-    body.appendChild(actions);
   }
 
+  if (actions.children.length) body.appendChild(actions);
+
+  // Small byline at the bottom — who posted it, when, and whether it's
+  // been edited since. Kept separate from the event's OWN date/time/
+  // location meta above so the two don't get visually confused.
+  const postedMeta = document.createElement("div");
+  postedMeta.className = "event-posted-meta";
+  const author = document.createElement("span");
+  author.textContent = data.postedBy || "PCSHS SMS";
+  postedMeta.appendChild(author);
+  const postedText = formatPostedDate(data.timestamp);
+  if (postedText) {
+    postedMeta.appendChild(metaDot());
+    const s = document.createElement("span");
+    s.textContent = `Posted ${postedText}`;
+    postedMeta.appendChild(s);
+  }
+  if (data.updatedAt) {
+    postedMeta.appendChild(metaDot());
+    const s = document.createElement("span");
+    s.className = "announcement-edited";
+    s.textContent = "edited";
+    postedMeta.appendChild(s);
+  }
+  body.appendChild(postedMeta);
+
   card.appendChild(body);
-  return card;
+  content.appendChild(card);
+  item.appendChild(content);
+
+  if (expandBtn) {
+    expandBtn.addEventListener("click", () => {
+      const isExpanded = card.classList.toggle("expanded");
+      expandBtn.setAttribute("aria-expanded", String(isExpanded));
+      expandBtn.textContent = isExpanded ? "Show Less ↑" : "Learn More ↓";
+      renderEventMedia(mediaBox, images, data, isExpanded);
+    });
+  }
+
+  return item;
+}
+
+// Location / time / audience rows with a small icon each — only the rows
+// that actually have data are shown, so a plain-text notice with none of
+// this doesn't leave empty space.
+function buildMetaRows(data) {
+  const rows = [];
+  if (data.location)  rows.push({ icon: "📍", text: data.location });
+  if (data.eventTime) rows.push({ icon: "🕐", text: data.eventTime });
+  if (data.audience)  rows.push({ icon: "👥", text: data.audience });
+  if (!rows.length) return null;
+
+  const wrap = document.createElement("div");
+  wrap.className = "event-meta";
+  rows.forEach(({ icon, text }) => {
+    const row = document.createElement("span");
+    row.className = "event-meta-row";
+    row.textContent = `${icon}  ${text}`;
+    wrap.appendChild(row);
+  });
+  return wrap;
+}
+
+// Fills in the card's image area: a placeholder box when there are no
+// images, a single cover photo (click → lightbox with the full set) while
+// collapsed or when there's only one photo, or the full collage grid once
+// expanded with more than one photo.
+function renderEventMedia(mediaBox, images, data, expanded) {
+  mediaBox.innerHTML = "";
+  mediaBox.classList.toggle("has-multi", images.length > 1);
+
+  if (images.length === 0) {
+    const placeholder = document.createElement("div");
+    placeholder.className = "event-media-placeholder";
+    const icon = document.createElement("span");
+    icon.className = "event-media-placeholder-icon";
+    icon.textContent = "📌";
+    const label = document.createElement("span");
+    label.className = "event-media-placeholder-label";
+    label.textContent = (Array.isArray(data.tags) && data.tags[0]) || "Announcement";
+    placeholder.appendChild(icon);
+    placeholder.appendChild(label);
+    mediaBox.appendChild(placeholder);
+    return;
+  }
+
+  if (expanded && images.length > 1) {
+    mediaBox.appendChild(buildMediaGrid(images, data.title));
+    return;
+  }
+
+  const img = document.createElement("img");
+  img.src = images[0];
+  img.loading = "lazy";
+  img.alt = data.title ? `${data.title} — cover photo` : "Announcement photo";
+  img.className = "event-cover-img";
+  img.addEventListener("click", () => openLightbox(images, 0));
+  mediaBox.appendChild(img);
+
+  if (images.length > 1) {
+    const overlay = document.createElement("span");
+    overlay.className = "event-cover-count";
+    overlay.textContent = `+${images.length - 1}`;
+    overlay.addEventListener("click", () => openLightbox(images, 0));
+    mediaBox.appendChild(overlay);
+  }
 }
 
 // Renders up to 4 image tiles in a collage layout; a "+N" overlay appears
 // on the last tile if the post has more than 4 images. Clicking any tile
 // opens the lightbox with the FULL image list (not just the 4 shown), so
-// nothing is ever hidden — just previewed more compactly.
-function buildMediaGrid(images, caption) {
+// nothing is ever hidden — just previewed more compactly. Only reached
+// once a card is expanded with more than one photo (see renderEventMedia).
+function buildMediaGrid(images, title) {
   const shown = images.slice(0, 4);
   const extra = images.length - shown.length;
 
@@ -293,7 +543,7 @@ function buildMediaGrid(images, caption) {
     const img = document.createElement("img");
     img.src = url;
     img.loading = "lazy";
-    img.alt = caption ? `${caption} — photo ${i + 1}` : `Announcement photo ${i + 1}`;
+    img.alt = title ? `${title} — photo ${i + 1}` : `Announcement photo ${i + 1}`;
     item.appendChild(img);
 
     if (extra > 0 && i === shown.length - 1) {
@@ -316,23 +566,26 @@ loadAnnouncements();
 uploadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  const captionInput = document.getElementById("pubmat-caption");
-
-  if (selectedFiles.length === 0) {
-    uploadStatus.textContent = "Please choose at least one image first.";
-    return;
-  }
-
   uploadButton.disabled = true;
+  uploadStatus.textContent = "";
 
   try {
-    const imageUrls = await uploadFilesWithProgress(selectedFiles);
+    let imageUrls = [];
+    if (selectedFiles.length > 0) {
+      imageUrls = await uploadFilesWithProgress(selectedFiles);
+    }
 
     uploadStatus.textContent = "Saving announcement...";
 
     await addDoc(collection(db, "announcements"), {
+      title: eventTitleInput.value.trim(),
+      caption: eventDescriptionInput.value.trim(),
+      tags: parseTags(eventTagsInput.value),
+      eventDate: eventDateInput.value || "",
+      eventTime: eventTimeInput.value.trim(),
+      location: eventLocationInput.value.trim(),
+      audience: eventAudienceInput.value.trim(),
       imageUrls,
-      caption: captionInput.value.trim(),
       postedBy: auth.currentUser.email,
       timestamp: serverTimestamp()
     });
@@ -341,6 +594,10 @@ uploadForm.addEventListener("submit", async (event) => {
     uploadForm.reset();
     selectedFiles = [];
     renderSelectedPreviews();
+    // Clear any active search so the freshly-posted announcement is
+    // actually visible right away, instead of possibly being filtered out
+    // by leftover search text from browsing.
+    searchInput.value = "";
     loadAnnouncements();
   } catch (error) {
     uploadStatus.textContent = "Something went wrong: " + error.message;
@@ -394,10 +651,16 @@ function fileToBase64(file) {
   });
 }
 
-// ---------- Part 4: edit an announcement (buttons only render for admin/staff, see buildAnnouncementCard) ----------
+// ---------- Part 4: edit an announcement (buttons only render for admin/staff, see buildEventCard) ----------
 function openEditModal(data) {
   editingId = data.id;
-  editCaptionInput.value = data.caption || "";
+  editTitleInput.value       = data.title || "";
+  editEventDateInput.value   = data.eventDate || "";
+  editEventTimeInput.value   = data.eventTime || "";
+  editLocationInput.value    = data.location || "";
+  editAudienceInput.value    = data.audience || "";
+  editTagsInput.value        = Array.isArray(data.tags) ? data.tags.join(", ") : "";
+  editDescriptionInput.value = data.caption || "";
   editMediaEntries = getImageUrls(data).map((url) => ({ type: "existing", url }));
   renderEditPreviews();
   editStatus.textContent = "";
@@ -446,8 +709,11 @@ editCancelBtn.addEventListener("click", closeEditModal);
 editModal.addEventListener("click", (e) => { if (e.target === editModal) closeEditModal(); });
 
 editSaveBtn.addEventListener("click", async () => {
-  if (editMediaEntries.length === 0) {
-    editStatus.textContent = "An announcement needs at least one image.";
+  // The edit modal isn't wrapped in a <form>, so there's no native
+  // "required" validation the way the create form gets it — checked here
+  // instead, same effect: title can't be saved blank.
+  if (!editTitleInput.value.trim()) {
+    editStatus.textContent = "Title can't be empty.";
     return;
   }
 
@@ -471,8 +737,14 @@ editSaveBtn.addEventListener("click", async () => {
 
     editStatus.textContent = "Saving changes...";
     await updateDoc(doc(db, "announcements", editingId), {
+      title: editTitleInput.value.trim(),
+      caption: editDescriptionInput.value.trim(),
+      tags: parseTags(editTagsInput.value),
+      eventDate: editEventDateInput.value || "",
+      eventTime: editEventTimeInput.value.trim(),
+      location: editLocationInput.value.trim(),
+      audience: editAudienceInput.value.trim(),
       imageUrls: finalUrls,
-      caption: editCaptionInput.value.trim(),
       updatedAt: serverTimestamp()
     });
 
@@ -489,8 +761,8 @@ editSaveBtn.addEventListener("click", async () => {
 function confirmDeleteAnnouncement(data) {
   askConfirm({
     title: "Delete this announcement?",
-    message: data.caption
-      ? `Delete "${data.caption}"? This can't be undone.`
+    message: data.title
+      ? `Delete "${data.title}"? This can't be undone.`
       : "Delete this announcement? This can't be undone.",
     confirmLabel: "Delete",
   }).then((confirmed) => {
