@@ -25,10 +25,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ├── faqs.html/js               # FAQ accordion
 ├── clubs.html                 # Student organizations
 ├── staff-directory.html       # Personnel listing
+├── support.html                # Support placeholder page (linked from header + footer)
 ├── login.html/js              # Firebase Auth login page
 ├── firebase-config.js         # Single Firebase init (exports auth, db)
 ├── auth-ui.js                 # Shared login/logout header state
-├── nav.js                     # Mobile hamburger menu toggle
+├── nav.js                     # Mobile hamburger menu toggle + Explore dropdown
 ├── theme.js                   # Dark/light toggle (localStorage)
 ├── style.css                  # Complete design system (58KB)
 ├── firestore.rules            # Security rules for all collections
@@ -52,6 +53,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Admin/Staff**: Full CRUD on all modules, can import PDFs, delete sections, edit the About page
 - **Secretary**: Can mark attendance only for assigned sections (set in user doc)
 - **Public**: Read-only access to announcements, lost & found, About, FAQs, clubs, staff directory
+
+### Site-wide Header & Navigation
+Every page repeats the same header/footer markup — there's no templating (see "No build step" below), so a nav or footer change means editing it in **every** HTML file. The header nav has five top-level items — Dashboard, Announcements, About, Support, and an "Explore" dropdown — so it stays on one line instead of wrapping on medium-width screens. Explore holds the rest: Attendance, Reports, Lost & Found, FAQs, Clubs, Staff Directory. The dropdown is plain markup (`.nav-dropdown` / `.nav-dropdown-toggle` / `.nav-dropdown-menu` in `style.css`) driven by `nav.js` — click to open/close (not hover, so it behaves the same on touch), and it closes on outside click, Escape, or tabbing away. The same markup renders as a floating popup on desktop and an in-place expanding section on mobile, switching at the existing 860px breakpoint.
 
 ## Development
 
@@ -116,7 +120,7 @@ Public content page (hero, vision/mission, history timeline, symbols, awards, or
 
 ### Add a New Module
 1. Create `module.html` + `module.js` (follow existing patterns)
-2. Add nav link in all HTML files' `<nav class="site-nav">`
+2. Add a nav link in all HTML files' `<nav class="site-nav">` — a new top-level link, or inside `.nav-dropdown-menu` if it's secondary (see "Site-wide Header & Navigation" above)
 3. Add footer links in all HTML files
 4. Import `auth-ui.js`, `nav.js`, `theme.js`, `suspension-banner.js` in new HTML
 5. Add Firestore rules for new collection in `firestore.rules`
