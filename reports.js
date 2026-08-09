@@ -60,8 +60,25 @@ const lbAbsentList          = document.getElementById("lb-absent-list");
 const lbLateList            = document.getElementById("lb-late-list");
 const lbPresentList         = document.getElementById("lb-present-list");
 
-// ─── AUTH (no gated features here, but kept for parity / future role checks) ──
-onAuthStateChanged(auth, () => {
+const reportsAuthGate = document.getElementById("reports-auth-gate");
+const reportsContent  = document.getElementById("reports-content");
+
+// ─── AUTH GATE ────────────────────────────────────────────────────────────────
+// Attendance reports show student-level records, so the whole page is
+// gated behind login — logged out, all that's visible is reportsAuthGate.
+// This is a client-side gate only: Firestore's read rules for attendance/
+// sections/students still allow public reads, since attendance.js's
+// today-only view and the dashboard's stat counts both depend on that same
+// public read. Turning this into a real server-side restriction would need
+// a firestore.rules change that touches those two pages too.
+onAuthStateChanged(auth, (user) => {
+  if (!user) {
+    reportsAuthGate.hidden = false;
+    reportsContent.hidden  = true;
+    return;
+  }
+  reportsAuthGate.hidden = true;
+  reportsContent.hidden  = false;
   loadSections();
 });
 

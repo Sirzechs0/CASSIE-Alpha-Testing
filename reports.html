@@ -46,7 +46,7 @@
         </button>
         <div class="nav-dropdown-menu">
           <a href="attendance.html">Attendance</a>
-          <a href="reports.html" class="active">Reports</a>
+          <a href="reports.html" class="active">Attendance Reports</a>
           <a href="lost-and-found.html">Lost &amp; Found</a>
           <a href="faqs.html">FAQs</a>
           <a href="clubs.html">Clubs</a>
@@ -65,19 +65,31 @@
 
 <main>
   <div class="page-header fx-rise-in">
-    <span class="eyebrow">MODULE — REPORTS</span>
+    <span class="eyebrow">MODULE — ATTENDANCE REPORTS</span>
     <h1>Attendance <span class="text-gradient">Reports</span></h1>
     <p>Monthly records, attendance rates, and student summaries — by section</p>
   </div>
 
-  <!-- Section Report vs Leaderboards -->
-  <div class="tab-bar" id="view-switcher">
+  <!-- Shown only when nobody is logged in — attendance reports contain
+       student-level records and aren't meant for casual/public browsing. -->
+  <div id="reports-auth-gate" class="placeholder-box fx-rise-in" hidden>
+    <span class="eyebrow">STAFF LOGIN REQUIRED</span>
+    <p>Attendance reports contain student records and are only visible to logged-in staff. <a href="login.html">Log in</a> to continue.</p>
+  </div>
+
+  <div id="reports-content" hidden>
+
+  <!-- Section Report vs Leaderboards — a segmented control, deliberately
+       styled apart from the filter pills below (see .view-switcher in
+       style.css) since this switches the whole VIEW, not just a filter. -->
+  <div class="view-switcher" id="view-switcher">
     <button type="button" class="tab-btn active" data-view="section">Section Report</button>
     <button type="button" class="tab-btn" data-view="leaderboard">Leaderboards</button>
   </div>
 
   <div id="section-report-view">
 
+  <span class="report-subnav-label">GRADE &amp; SECTION</span>
   <!-- Grade level tabs -->
   <div class="tab-bar" id="grade-tabs"></div>
   <!-- Section tabs -->
@@ -184,6 +196,7 @@
 
   <!-- Leaderboards -->
   <div id="leaderboard-view" hidden>
+    <span class="report-subnav-label">LEADERBOARD PERIOD</span>
     <div class="tab-bar" id="leaderboard-period-tabs">
       <button type="button" class="tab-btn active" data-period="day">Today</button>
       <button type="button" class="tab-btn" data-period="week">This Week</button>
@@ -207,6 +220,8 @@
       </div>
     </div>
   </div><!-- end #leaderboard-view -->
+
+  </div><!-- end #reports-content -->
 </main>
 
 <footer class="site-footer">
@@ -241,7 +256,7 @@
       <span class="footer-col-title">Explore</span>
       <a href="index.html">Dashboard</a>
       <a href="attendance.html">Attendance</a>
-      <a href="reports.html">Reports</a>
+      <a href="reports.html">Attendance Reports</a>
       <a href="announcements.html">Announcements</a>
       <a href="lost-and-found.html">Lost &amp; Found</a>
     </div>

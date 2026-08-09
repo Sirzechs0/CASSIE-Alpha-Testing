@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**C.A.S.S.I.E.** (Centralized Academic and School Services Information Engine) — a Firebase-backed web application for **Pasig City Science High School (PCSHS)**. It's a multi-page school management system with modules for attendance, announcements, lost & found, reports/analytics, calendar & history, FAQs, clubs, and staff directory.
+**C.A.S.S.I.E.** (Centralized Academic and School Services Information Engine) — a Firebase-backed web application for **Pasig City Science High School (PCSHS)**. It's a multi-page school management system with modules for attendance, announcements, lost & found, reports/analytics, calendar & history, FAQs, clubs, staff directory and many more others.
 
 ## Architecture
 
@@ -55,7 +55,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Public**: Read-only access to announcements, lost & found, About, FAQs, clubs, staff directory
 
 ### Site-wide Header & Navigation
-Every page repeats the same header/footer markup — there's no templating (see "No build step" below), so a nav or footer change means editing it in **every** HTML file. The header nav has five top-level items — Dashboard, Announcements, About, Support, and an "Explore" dropdown — so it stays on one line instead of wrapping on medium-width screens. Explore holds the rest: Attendance, Reports, Lost & Found, FAQs, Clubs, Staff Directory. The dropdown is plain markup (`.nav-dropdown` / `.nav-dropdown-toggle` / `.nav-dropdown-menu` in `style.css`) driven by `nav.js` — click to open/close (not hover, so it behaves the same on touch), and it closes on outside click, Escape, or tabbing away. The same markup renders as a floating popup on desktop and an in-place expanding section on mobile, switching at the existing 860px breakpoint.
+Every page repeats the same header/footer markup — there's no templating (see "No build step" below), so a nav or footer change means editing it in **every** HTML file. The header nav has five top-level items — Dashboard, Announcements, About, Support, and an "Explore" dropdown — so it stays on one line instead of wrapping on medium-width screens. Explore holds the rest: Attendance, Attendance Reports, Lost & Found, FAQs, Clubs, Staff Directory. The dropdown is plain markup (`.nav-dropdown` / `.nav-dropdown-toggle` / `.nav-dropdown-menu` in `style.css`) driven by `nav.js` — click to open/close (not hover, so it behaves the same on touch), and it closes on outside click, Escape, or tabbing away. The same markup renders as a floating popup on desktop and an in-place expanding section on mobile, switching at the existing 860px breakpoint.
 
 ## Development
 
@@ -87,6 +87,8 @@ Then open `http://localhost:3000` (or whatever port).
 - `import` modal — Two-step: upload PDF → review/edit detected sections → save all
 
 ### Reports (`reports.js` — 600+ lines)
+- Nav-facing name is "Attendance Reports" (header/footer link text, `<h1>`) — "Reports" alone read too generic next to the site's other modules.
+- The whole page is gated behind login: logged out, `reports.html` shows a "log in to continue" placeholder instead of any report data (see the `onAuthStateChanged` handler at the top of `reports.js`). This is a client-side gate only — Firestore's read rules for `attendance`/`sections`/`students` are still public, since `attendance.js`'s today-only view and the dashboard's stat counts depend on that same public read. Making this a real server-side restriction would mean touching those two pages as well.
 - Month navigator fetching one attendance doc per weekday
 - Calendar grid with color-coded attendance rate dots (≥90% / 70–89% / <70%)
 - Per-student monthly summary table
