@@ -129,6 +129,11 @@
         <strong id="ov-perfect">0</strong>
         <span class="report-stat-sub">students never absent</span>
       </div>
+      <div class="report-stat-card" id="ov-not-submitted-card">
+        <span class="report-stat-label">Not Submitted</span>
+        <strong id="ov-not-submitted">0</strong>
+        <span class="report-stat-sub">school day(s) missing a report</span>
+      </div>
     </div>
 
     <!-- Monthly calendar -->
@@ -204,6 +209,13 @@
     </div>
 
     <div id="leaderboard-msg" class="placeholder-box" hidden></div>
+
+    <!-- Which sections haven't submitted attendance yet — only meaningful
+         for the "Today" tab, populated by loadLeaderboard() in reports.js -->
+    <div id="not-submitted-banner" class="not-submitted-banner" hidden>
+      <span class="not-submitted-banner-icon">⚠</span>
+      <span id="not-submitted-banner-text"></span>
+    </div>
 
     <div class="leaderboard-grid fx-stagger">
       <div class="leaderboard-card cat-absent">

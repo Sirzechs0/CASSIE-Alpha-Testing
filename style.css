@@ -2589,3 +2589,106 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .event-item { gap: 12px; }
   .event-marker { width: 14px; }
 }
+
+/* ============================================================================
+   ATTENDANCE SUBMISSION WORKFLOW
+   Added alongside the Attendance page's date navigator + Submit button, and
+   the matching "not submitted" states on Attendance Reports. Appended here
+   rather than interleaved with the sections above so the diff stays easy to
+   review — conceptually these rules belong with "Reports page" and
+   "Attendance tabs" further up this file.
+   ============================================================================ */
+
+/* ---------- Attendance page: date navigator ----------
+   Reuses .month-picker (see Reports page above) as the flex-row wrapper, so
+   this matches the Reports page's own month navigator by design. */
+.date-nav-input {
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  min-width: 168px;
+  text-align: center;
+  transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease);
+}
+.date-nav-input:focus { outline: none; border-color: var(--accent-1); box-shadow: 0 0 0 3px var(--glow); }
+#jump-today-btn { margin: 0; }
+
+/* ---------- Attendance page: submission status bar ----------
+   Shows whether the currently selected section+date has been submitted,
+   and (for whoever's allowed to mark this section) the button that
+   controls it. This is the on/off switch Attendance Reports checks. */
+.submission-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  margin-bottom: 22px;
+}
+.submission-bar[hidden] { display: none; }
+.submission-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.submission-badge.submitted { color: var(--success); border-color: var(--success); background: rgba(79, 157, 110, 0.12); }
+.submission-badge.pending   { color: var(--danger);  border-color: var(--danger);  background: rgba(178, 58, 58, 0.1); }
+.submission-detail { color: var(--muted); font-size: 0.85rem; flex: 1 1 auto; min-width: 160px; }
+.submission-bar .btn-primary,
+.submission-bar .btn-secondary { margin: 0; flex-shrink: 0; white-space: nowrap; }
+
+/* ---------- Attendance Reports: "Not Submitted" calendar state ----------
+   A third calendar-cell state alongside the existing has-data/no-data ones
+   (see .cal-cell.weekend/.has-data/.no-data above) — a school day that
+   should have a submitted report but doesn't (reports.js loadMonth()).
+   Still clickable, like a has-data cell, but opens an explanatory panel
+   instead of a student table (showNotSubmittedDetail() in reports.js). */
+.cal-cell.not-submitted { cursor: pointer; }
+.cal-cell.not-submitted:hover { background: var(--surface-hover); }
+.cal-cell.not-submitted .cal-day-num { color: var(--danger); font-weight: 600; }
+.cal-dot.rate-not-submitted {
+  background: rgba(178, 58, 58, 0.18);
+  color: var(--danger);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Overview stat card — dials up to the danger color when Not Submitted > 0,
+   same "only draw attention when there's something to flag" pattern as the
+   flagged-row treatment on the PDF import review screen. */
+.report-stat-card.has-warning { border-color: var(--danger); }
+.report-stat-card.has-warning strong { color: var(--danger); }
+
+/* ---------- Attendance Reports: leaderboard "not submitted today" banner ---------- */
+.not-submitted-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(178, 58, 58, 0.1);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  padding: 13px 16px;
+  margin-bottom: 18px;
+  font-size: 0.88rem;
+  color: var(--ink);
+  line-height: 1.5;
+}
+.not-submitted-banner[hidden] { display: none; }
+.not-submitted-banner-icon { flex-shrink: 0; color: var(--danger); font-weight: 700; }

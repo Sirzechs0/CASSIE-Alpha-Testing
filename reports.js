@@ -3,6 +3,9 @@
 // • Month navigator, fetches one attendance doc per day of the selected month
 // • Overview stat cards, monthly calendar grid, day detail panel
 // • Monthly per-student summary table + Print
+// • "Not Submitted" detection — a school day with no submitted attendance
+//   doc (attendance.js's Submit button) shows as a distinct flagged state
+//   instead of silently counting as full attendance — see monthNotSubmitted
 
 import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
@@ -15,7 +18,10 @@ let allSections     = [];
 let currentSection  = null;
 let currentStudents = [];
 let monthRecords    = {};  // { "2026-07-15": { studentId: {status, timeIn} }, ... } — weekdays only,
-                           // auto-filled with {} for past school days nobody had to touch
+                           // only for days with a genuinely SUBMITTED report (see loadMonth())
+let monthNotSubmitted = {}; // { "2026-07-16": true, ... } — school days that should have a
+                             // submitted report but don't (never opened, or opened but never
+                             // confirmed with Submit on the Attendance page)
 let viewYear, viewMonth;   // viewMonth is 0-indexed (Date convention)
 
 const today = new Date();
@@ -32,10 +38,12 @@ const nextMonthBtn    = document.getElementById("next-month-btn");
 const reportMsg       = document.getElementById("report-msg");
 const reportContent   = document.getElementById("report-content");
 
-const ovDays    = document.getElementById("ov-days");
-const ovAvg     = document.getElementById("ov-avg");
-const ovLate    = document.getElementById("ov-late");
-const ovPerfect = document.getElementById("ov-perfect");
+const ovDays         = document.getElementById("ov-days");
+const ovAvg          = document.getElementById("ov-avg");
+const ovLate         = document.getElementById("ov-late");
+const ovPerfect      = document.getElementById("ov-perfect");
+const ovNotSubmitted     = document.getElementById("ov-not-submitted");
+const ovNotSubmittedCard = document.getElementById("ov-not-submitted-card");
 
 const reportCalendar = document.getElementById("report-calendar");
 
@@ -59,6 +67,8 @@ const leaderboardMsg        = document.getElementById("leaderboard-msg");
 const lbAbsentList          = document.getElementById("lb-absent-list");
 const lbLateList            = document.getElementById("lb-late-list");
 const lbPresentList         = document.getElementById("lb-present-list");
+const notSubmittedBanner     = document.getElementById("not-submitted-banner");
+const notSubmittedBannerText = document.getElementById("not-submitted-banner-text");
 
 const reportsAuthGate = document.getElementById("reports-auth-gate");
 const reportsContent  = document.getElementById("reports-content");
@@ -166,14 +176,20 @@ async function loadStudents(sectionId) {
 // ─── LOAD MONTH ATTENDANCE ────────────────────────────────────────────────────
 // Attendance docs are keyed "{sectionId}_{YYYY-MM-DD}" — one per day. There's no
 // query field to filter by month, so we fetch every weekday of the visible month
-// in parallel and keep only the ones that actually exist.
+// in parallel and sort each one into monthRecords (real, submitted data) or
+// monthNotSubmitted (a school day that should have a report but doesn't).
 // PCSHS holds no Saturday/Sunday classes, so weekends are skipped entirely here —
 // never fetched, never counted in any stat, never shown as a rate on the calendar.
-// A weekday that's already happened (or is today) but has no saved document is
-// treated as a full-attendance day — same default the Attendance page itself uses
-// when nobody needs marking (see tallyDay() above). This only applies from the
-// go-live date onward (ATTENDANCE_START_DATE below), so the dev/testing period
-// before real attendance-taking began doesn't get counted as if it happened.
+//
+// A day only lands in monthRecords once its document has submitted !== false —
+// see the Attendance page's Submit button (attendance.js). A document that
+// exists but is still a draft (submitted:false — someone opened the page and
+// marked a few students but never pressed Submit) is treated exactly the same
+// as no document at all: both show up as "not submitted" on this calendar,
+// because neither represents a report the secretary actually finalized. This
+// only applies from the go-live date onward (ATTENDANCE_START_DATE below), so
+// the dev/testing period before real attendance-taking began doesn't get
+// flagged as if a report was missed.
 
 // The secretaries' first real day using the system. Update this single line
 // if the actual rollout date ever changes.
@@ -199,17 +215,31 @@ async function loadMonth() {
   }
 
   monthRecords = {};
+  monthNotSubmitted = {};
   await Promise.all(weekdays.map(async ({ dateStr, date }) => {
     try {
       const snap = await getDoc(doc(db, "attendance", `${currentSection.id}_${dateStr}`));
+      const isTrackedSchoolDay = date >= ATTENDANCE_START_DATE && date <= todayStart;
+
       if (snap.exists()) {
-        monthRecords[dateStr] = snap.data().records || {};
-      } else if (date >= ATTENDANCE_START_DATE && date <= todayStart) {
-        // Live school day already happened, nobody needed marking — full attendance.
-        monthRecords[dateStr] = {};
+        const data = snap.data();
+        // `submitted` was added alongside the Attendance page's Submit
+        // button; docs saved before that (no field at all) are
+        // grandfathered in as submitted, since every save back then WAS
+        // the final word for that day. Only an explicit false — a day
+        // someone started marking but never actually submitted — reads
+        // as not-submitted.
+        const isSubmitted = data.submitted !== false;
+        if (isSubmitted) {
+          monthRecords[dateStr] = data.records || {};
+        } else if (isTrackedSchoolDay) {
+          monthNotSubmitted[dateStr] = true;
+        }
+      } else if (isTrackedSchoolDay) {
+        // No document at all — this school day was never even opened.
+        monthNotSubmitted[dateStr] = true;
       }
-      // else: either before go-live (no real tracking yet) or a weekday still
-      // in the future — leave it out either way.
+      // else: before go-live, or a weekday still in the future — leave out.
     } catch {
       // skip days that fail to load
     }
@@ -254,9 +284,12 @@ function rateClass(rate) {
 // ─── OVERVIEW CARDS ───────────────────────────────────────────────────────────
 function renderOverview() {
   const recordedDates = Object.keys(monthRecords);
+  const notSubmittedDates = Object.keys(monthNotSubmitted);
   const total = currentStudents.length;
 
   ovDays.textContent = recordedDates.length;
+  if (ovNotSubmitted) ovNotSubmitted.textContent = notSubmittedDates.length;
+  if (ovNotSubmittedCard) ovNotSubmittedCard.classList.toggle("has-warning", notSubmittedDates.length > 0);
 
   if (recordedDates.length === 0 || total === 0) {
     ovAvg.textContent = "—";
@@ -307,6 +340,7 @@ function renderCalendar() {
     const dateStr = toDateStr(viewYear, viewMonth, day);
     const dow     = new Date(viewYear, viewMonth, day).getDay(); // 0 = Sun, 6 = Sat
     const records = monthRecords[dateStr];
+    const notSubmitted = monthNotSubmitted[dateStr];
 
     const cell = document.createElement("div");
     cell.className = "cal-cell";
@@ -322,7 +356,9 @@ function renderCalendar() {
       cell.classList.add("weekend");
     } else {
       // Every school-day cell gets a dot — colored by rate when there's data,
-      // muted "rate-none" when there isn't — so the grid reads consistently.
+      // flagged red when a report is missing, muted "rate-none" when
+      // there's genuinely nothing expected yet — so the grid reads
+      // consistently no matter which of the three states a day is in.
       const dot = document.createElement("span");
       dot.className = "cal-dot";
 
@@ -336,6 +372,13 @@ function renderCalendar() {
         dot.textContent = `${rate}%`;
 
         cell.addEventListener("click", () => showDayDetail(dateStr, records));
+      } else if (notSubmitted) {
+        cell.classList.add("not-submitted");
+        cell.title = "Attendance not submitted for this day";
+        dot.classList.add("rate-not-submitted");
+        dot.textContent = "!";
+
+        cell.addEventListener("click", () => showNotSubmittedDetail(dateStr));
       } else {
         cell.classList.add("no-data");
         dot.classList.add("rate-none");
@@ -383,12 +426,43 @@ function showDayDetail(dateStr, records) {
   dayDetail.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
+// Same panel as a normal day's detail, but there's no student data to
+// show — just a clear explanation of what's missing and what needs to
+// happen next, reusing the existing stat/table layout rather than a
+// separate one-off element.
+function showNotSubmittedDetail(dateStr) {
+  dayDetail.hidden = false;
+
+  const [y, m, d] = dateStr.split("-").map(Number);
+  dayDetailTitle.textContent = new Date(y, m - 1, d)
+    .toLocaleDateString("en-PH", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
+  ddPresent.textContent = "—";
+  ddLate.textContent    = "—";
+  ddAbsent.textContent  = "—";
+  ddRate.textContent    = "";
+
+  const sectionLabel = currentSection ? `Grade ${currentSection.grade} – ${currentSection.name}` : "This section";
+  dayDetailTbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--muted)">
+    ⚠ No attendance report was submitted for ${sectionLabel} on this day. Open the Attendance page,
+    pick this date, mark or review the students, then press Submit Attendance.
+  </td></tr>`;
+
+  dayDetail.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
 // ─── MONTHLY PER-STUDENT SUMMARY ──────────────────────────────────────────────
 function renderSummary() {
   const recordedDates = Object.keys(monthRecords);
-  summaryNote.textContent = recordedDates.length
+  const notSubmittedCount = Object.keys(monthNotSubmitted).length;
+
+  let note = recordedDates.length
     ? `Based on ${recordedDates.length} recorded day(s) this month.`
     : "No attendance has been recorded yet for this month.";
+  if (notSubmittedCount > 0) {
+    note += ` ${notSubmittedCount} school day(s) this month have no submitted report and are excluded from these totals.`;
+  }
+  summaryNote.textContent = note;
 
   summaryTbody.innerHTML = "";
   currentStudents.forEach((student) => {
@@ -472,6 +546,7 @@ async function loadLeaderboard() {
   const lists = [lbAbsentList, lbLateList, lbPresentList];
 
   leaderboardMsg.hidden = true;
+  if (notSubmittedBanner) notSubmittedBanner.hidden = true;
   lists.forEach((el) => { el.innerHTML = `<li class="leaderboard-empty">Loading...</li>`; });
 
   if (allSections.length === 0) return; // renderGradeTabs() re-calls this once sections arrive
@@ -496,11 +571,33 @@ async function loadLeaderboard() {
   }
 
   leaderboardDaysBySection = {};
+  const submittedSectionIds = new Set();
   snap.forEach((docSnap) => {
     const data = docSnap.data();
     if (!data.sectionId) return;
+    // A draft (submitted:false) isn't a finished report — same rule as the
+    // Section Report calendar above, so a section can't rank well on data
+    // nobody actually confirmed. Legacy docs with no `submitted` field at
+    // all predate this feature and still count, same grandfathering used
+    // everywhere else this field is checked.
+    if (data.submitted === false) return;
+    submittedSectionIds.add(data.sectionId);
     (leaderboardDaysBySection[data.sectionId] ||= []).push({ dateStr: data.date, records: data.records || {} });
   });
+
+  // Which sections haven't submitted only has one clear meaning for a
+  // single day — across a Week or Month, a section legitimately having
+  // SOME days without a report yet (this week isn't over) is normal, not
+  // a red flag, so this check is scoped to the "Today" tab only.
+  if (notSubmittedBanner && notSubmittedBannerText && leaderboardPeriod === "day") {
+    const missing = allSections.filter((s) => !submittedSectionIds.has(s.id));
+    if (missing.length > 0) {
+      const names = missing.map((s) => `Grade ${s.grade} – ${s.name}`).join(", ");
+      notSubmittedBannerText.textContent =
+        `${missing.length} section${missing.length > 1 ? "s haven't" : " hasn't"} submitted today's attendance yet: ${names}`;
+      notSubmittedBanner.hidden = false;
+    }
+  }
 
   const stats = allSections
     .map((section) => {

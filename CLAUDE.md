@@ -43,7 +43,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 |------------|---------|------------|
 | `sections` | Class sections (grade, name, adviser, room, maleCount, femaleCount) | `grade`, `name`, `adviser`, `room`, `maleCount`, `femaleCount` |
 | `sections/{sectionId}/students` | Student roster per section | `no`, `name`, `gender` (M/F) |
-| `attendance` | Daily attendance records, keyed `{sectionId}_{YYYY-MM-DD}` | `sectionId`, `date`, `records` (map of studentId → {status, timeIn}) |
+| `attendance` | Daily attendance records, keyed `{sectionId}_{YYYY-MM-DD}` | `sectionId`, `date`, `records` (map of studentId → {status, timeIn}), `submitted` (bool), `submittedAt`, `submittedBy` |
 | `announcements` | Event-style timeline posts — title, optional schedule/location/audience, tags, optional images | `title`, `caption`, `tags[]`, `eventDate`, `eventTime`, `location`, `audience`, `imageUrls[]`, `postedBy`, `timestamp` |
 | `lostAndFound` | Lost/found item reports | `type` (lost/found), `title`, `description`, `location`, `date`, `contact`, `imageUrls[]` |
 | `users` | Staff accounts with roles | `role` (admin/staff/secretary), `assignedSections[]` (for secretaries) |
@@ -79,20 +79,23 @@ Then open `http://localhost:3000` (or whatever port).
 
 ## Module Details
 
-### Attendance (`attendance.js` — 1100+ lines)
+### Attendance (`attendance.js` — 1400+ lines)
 **Complexity**: High. Handles PDF class list import with custom Y-coordinate text extraction to handle PCSHS's two-column (Male/Female) format. Key functions:
 - `extractTextFromPdf()` / `parsePcshsPages()` / `parseSingleSection()` — PDF → structured sections
 - `extractStudentsFromItems()` — Geometry-based row reconstruction (handles wrapped names)
 - `markAttendance()` — 3-state cycle (Present → Late → Absent) with time-in for Late
 - `import` modal — Two-step: upload PDF → review/edit detected sections → save all
+- **Date navigator** (`prevDayBtn`/`nextDayBtn`/`dateInput`, `#date-picker`) — steps to any past school day back to `ATTENDANCE_START_DATE`, skipping weekends, so a secretary can go back and fix a day they forgot or got wrong instead of only ever marking today. Builds its "today" from local `Date` getters (`toDateStr()`), not `toISOString()`, which would silently report the wrong calendar day for part of every morning in Philippine time (UTC+8).
+- **Submit workflow** (`docMeta`, `renderSubmissionBar()`, `#submit-attendance-btn`) — marking a student's status always saves immediately, but a day only counts as "official" once Submit is pressed, which stamps `submitted: true` on that day's doc. A brand-new doc gets `submitted: false` on its first save (see the `docMeta.exists` check in `markAttendance()`); docs saved before this feature existed have no `submitted` field at all and are grandfathered in as submitted (`data.submitted !== false`). This same rule is duplicated in `reports.js` — keep both in sync if it ever changes.
 
-### Reports (`reports.js` — 600+ lines)
+### Reports (`reports.js` — 700+ lines)
 - Nav-facing name is "Attendance Reports" (header/footer link text, `<h1>`) — "Reports" alone read too generic next to the site's other modules.
-- The whole page is gated behind login: logged out, `reports.html` shows a "log in to continue" placeholder instead of any report data (see the `onAuthStateChanged` handler at the top of `reports.js`). This is a client-side gate only — Firestore's read rules for `attendance`/`sections`/`students` are still public, since `attendance.js`'s today-only view and the dashboard's stat counts depend on that same public read. Making this a real server-side restriction would mean touching those two pages as well.
+- The whole page is gated behind login: logged out, `reports.html` shows a "log in to continue" placeholder instead of any report data (see the `onAuthStateChanged` handler at the top of `reports.js`). This is a client-side gate only — Firestore's read rules for `attendance`/`sections`/`students` are still public, since `attendance.js`'s date-navigable view and the dashboard's stat counts depend on that same public read. Making this a real server-side restriction would mean touching those two pages as well.
 - Month navigator fetching one attendance doc per weekday
 - Calendar grid with color-coded attendance rate dots (≥90% / 70–89% / <70%)
 - Per-student monthly summary table
 - School-wide leaderboards (day/week/month) by absence/late/present rates
+- **"Not Submitted" detection** (`monthNotSubmitted`, `showNotSubmittedDetail()`) — a school day with no submitted attendance doc (never opened, or opened but never confirmed with Submit on the Attendance page) shows as a distinct red "!" state on the calendar instead of being silently counted as full attendance the way it used to be. The monthly overview gets a matching "Not Submitted" stat card, and the Leaderboards' "Today" tab lists any section that hasn't submitted yet (`not-submitted-banner`).
 
 ### Announcements (`announcements.js`)
 Rendered as a vertical timeline (`.event-item`/`.event-card` in `style.css`), not the masonry grid Lost & Found still uses below. Each post has a title (required), optional event date/time/location/audience, optional tags, and OPTIONAL images — a placeholder box (`.event-media-placeholder`) shows when there are none. Long descriptions (`-webkit-line-clamp`) and multi-image galleries collapse behind a "Learn More" toggle — see `buildEventCard()` / `renderEventMedia()`. A page-local search box (`#announcement-search`) filters the already-loaded posts client-side by title/description/tags/location/audience (same pattern as the FAQ search); clicking a tag chip re-runs that same search for the tag. A small "Past" badge appears once `eventDate` is before today. Image upload still goes through ImgBB (base64 → POST), same as Lost & Found.
@@ -157,6 +160,8 @@ firebase deploy --only firestore:rules
 - **No build step** = no transpilation. Use only widely-supported JS features (ES2020+ is fine in modern browsers).
 - **Firebase SDK from CDN** — version pinned to 12.15.0 in all imports. Update all files together if upgrading.
 - **Attendance date key format**: `{sectionId}_${YYYY-MM-DD}` (e.g., `grade12_bernoulli_2026-07-27`)
+- **`submitted` field on attendance docs** — added for the Submit workflow. Three states: missing entirely (doc predates this feature — treated as submitted), explicitly `false` (a draft someone started marking but never confirmed), or `true` (submitted). `attendance.js` and `reports.js` both check this with the same `!== false` pattern — change one, change both.
+- **`ATTENDANCE_START_DATE` is duplicated** in `attendance.js` (bounds the date navigator) and `reports.js` (bounds which missing days get flagged "not submitted"). Same tradeoff as the ImgBB key below — update both if the real rollout date changes.
 - **Secretary role** only exists in `attendance.js` — other pages treat secretaries as regular users (no admin tools).
 - **ImgBB API key** is hardcoded in three files (`announcements.js`, `lost-and-found.js`, `about.js`). Rotate in all three if needed.
 - **PDF.js worker** configured in `attendance.js:16-18` — must match pdf.js version.

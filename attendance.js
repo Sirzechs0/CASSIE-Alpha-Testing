@@ -3,7 +3,10 @@
 // • PCSHS-format parser (MALE/FEMALE headers, no M/F column per row)
 // • Multi-section import from a single PDF
 // • Grade/section tab navigation
-// • Click-to-mark attendance: manual Present → Absent → Late cycle
+// • Click-to-mark attendance: manual Present → Late → Absent cycle
+// • Date navigator: mark or correct any past school day, not just today
+// • Submit workflow: a day only counts as "official" on Attendance Reports
+//   once Submit is pressed — see docMeta / renderSubmissionBar() below
 
 import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
@@ -27,13 +30,71 @@ let currentStudents = [];
 let attendanceRecs  = {};
 let importedSections = []; // [{ grade, sectionName, adviser, room, maleCount, femaleCount, students }]
 
-// ─── TODAY ────────────────────────────────────────────────────────────────────
-const today   = new Date();
-const dateStr = today.toISOString().split("T")[0];
-document.getElementById("attendance-date").textContent =
-  today.toLocaleDateString("en-PH", {
-    weekday: "long", year: "numeric", month: "long", day: "numeric"
-  });
+// Everything about the currently-loaded attendance DOCUMENT beyond its
+// records — whether/when/by whom it was submitted. Reset on every
+// loadAttendance() call. `exists` distinguishes "no document at all yet"
+// from "a document exists but was never explicitly submitted" — both
+// display as "not submitted", but only the first one needs the very next
+// save to stamp submitted:false explicitly (see markAttendance()).
+let docMeta = { exists: false, submitted: false, submittedAt: null, submittedBy: null };
+
+// ─── DATE STATE ───────────────────────────────────────────────────────────────
+// Local-calendar-day string (YYYY-MM-DD) built from local getters, NOT
+// toISOString() — toISOString() converts to UTC first, which silently
+// rolls the date back a day for part of every day in any timezone ahead of
+// UTC (like the Philippines, UTC+8): from midnight to just before 8AM
+// local time, toISOString() would still report YESTERDAY's date. That bug
+// would have made "today" wrong at exactly the hours a secretary is most
+// likely to be opening this page for morning attendance.
+function toDateStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+const todayStr = toDateStr(today);
+
+// Earliest day the date navigator allows — matches Attendance Reports' own
+// ATTENDANCE_START_DATE constant (reports.js). Duplicated rather than
+// shared: this project has no build step/bundler, so a plain constant
+// isn't worth a whole extra shared module for (same tradeoff as the ImgBB
+// key duplication — see CLAUDE.md). Keep both in sync if the real rollout
+// date ever changes.
+const ATTENDANCE_START_DATE = new Date(2026, 6, 27); // July 27, 2026 (month is 0-indexed)
+
+let selectedDate    = new Date(today);
+let selectedDateStr = todayStr;
+
+function isWeekend(d) {
+  const dow = d.getDay();
+  return dow === 0 || dow === 6;
+}
+
+// Steps a date by `dir` (+1 or -1) days, skipping Saturday/Sunday — PCSHS
+// holds no weekend classes, so there's nothing to mark on those days.
+function stepToSchoolDay(d, dir) {
+  const next = new Date(d);
+  do {
+    next.setDate(next.getDate() + dir);
+  } while (isWeekend(next));
+  return next;
+}
+
+// Keeps a date inside [ATTENDANCE_START_DATE, today] and off weekends —
+// used both when stepping with the prev/next buttons and when someone
+// picks a date directly in the date input.
+function clampToValidSchoolDay(d) {
+  let clamped = new Date(d);
+  if (clamped < ATTENDANCE_START_DATE) clamped = new Date(ATTENDANCE_START_DATE);
+  if (clamped > today) clamped = new Date(today);
+  while (isWeekend(clamped) && clamped > ATTENDANCE_START_DATE) {
+    clamped.setDate(clamped.getDate() - 1);
+  }
+  return clamped;
+}
 
 // ─── DOM REFS ─────────────────────────────────────────────────────────────────
 const gradeTabs           = document.getElementById("grade-tabs");
@@ -49,6 +110,73 @@ const statPresent         = document.getElementById("stat-present");
 const statLate            = document.getElementById("stat-late");
 const statAbsent          = document.getElementById("stat-absent");
 const statTotal           = document.getElementById("stat-total");
+
+const attendanceHeadingPrefix = document.getElementById("attendance-heading-prefix");
+const attendanceDateEl        = document.getElementById("attendance-date");
+
+const datePicker   = document.getElementById("date-picker");
+const dateInput    = document.getElementById("date-input");
+const prevDayBtn   = document.getElementById("prev-day-btn");
+const nextDayBtn   = document.getElementById("next-day-btn");
+const jumpTodayBtn = document.getElementById("jump-today-btn");
+
+const submissionBar       = document.getElementById("submission-bar");
+const submissionBadge     = document.getElementById("submission-badge");
+const submissionDetail    = document.getElementById("submission-detail");
+const submitAttendanceBtn = document.getElementById("submit-attendance-btn");
+
+// ─── DATE NAVIGATOR SETUP ─────────────────────────────────────────────────────
+dateInput.min   = toDateStr(ATTENDANCE_START_DATE);
+dateInput.max   = todayStr;
+dateInput.value = selectedDateStr;
+updateDateNavButtons();
+updateHeading();
+
+prevDayBtn.addEventListener("click", () => {
+  selectedDate = clampToValidSchoolDay(stepToSchoolDay(selectedDate, -1));
+  onDateChanged();
+});
+nextDayBtn.addEventListener("click", () => {
+  selectedDate = clampToValidSchoolDay(stepToSchoolDay(selectedDate, 1));
+  onDateChanged();
+});
+jumpTodayBtn.addEventListener("click", () => {
+  selectedDate = new Date(today);
+  onDateChanged();
+});
+dateInput.addEventListener("change", () => {
+  if (!dateInput.value) return;
+  const [y, m, d] = dateInput.value.split("-").map(Number);
+  if (!y || !m || !d) return;
+  selectedDate = clampToValidSchoolDay(new Date(y, m - 1, d));
+  onDateChanged();
+});
+
+// Re-picks up whenever the navigator moves to a new day: syncs the input,
+// re-evaluates the prev/next/jump-today button states, updates the
+// heading, and (if a section is already selected) reloads that section's
+// attendance for the newly-selected date.
+function onDateChanged() {
+  selectedDateStr = toDateStr(selectedDate);
+  dateInput.value = selectedDateStr;
+  updateDateNavButtons();
+  updateHeading();
+  if (currentSection) refreshAttendanceForDate();
+}
+
+function updateDateNavButtons() {
+  nextDayBtn.disabled = selectedDateStr >= todayStr;
+  jumpTodayBtn.hidden = selectedDateStr === todayStr;
+  prevDayBtn.disabled = selectedDate <= ATTENDANCE_START_DATE;
+}
+
+function updateHeading() {
+  const isToday = selectedDateStr === todayStr;
+  if (attendanceHeadingPrefix) attendanceHeadingPrefix.textContent = isToday ? "Today’s" : "Past Day’s";
+  attendanceDateEl.textContent = selectedDate.toLocaleDateString("en-PH", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric"
+  });
+}
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
@@ -82,6 +210,16 @@ function getVisibleSections() {
     return allSections.filter((s) => secretarySections.includes(s.id));
   }
   return allSections;
+}
+
+// Whether the CURRENTLY logged-in user is allowed to mark/submit attendance
+// for currentSection — admin/staff always can; a secretary only for the
+// section(s) their own account lists. Shared by renderTable() (badge
+// clicks) and renderSubmissionBar() (the Submit button) so the two never
+// disagree about who's allowed to touch this section.
+function canMarkCurrentSection() {
+  return isAdminOrStaff ||
+    (userRole === "secretary" && currentSection && secretarySections.includes(currentSection.id));
 }
 
 // ─── LOAD SECTIONS ────────────────────────────────────────────────────────────
@@ -160,6 +298,8 @@ async function selectSection(section) {
   classHeader.hidden         = false;
   attendanceTableWrap.hidden = false;
   attendanceMsg.hidden       = true;
+  datePicker.hidden          = false;
+  submissionBar.hidden       = false;
 
   // Show delete section button only to admin/staff
   const deleteSectionBtn = document.getElementById("delete-section-btn");
@@ -167,10 +307,22 @@ async function selectSection(section) {
     deleteSectionBtn.hidden = !isAdminOrStaff;
     deleteSectionBtn.onclick = deleteSection;
   }
-  attendanceTbody.innerHTML  =
+
+  await loadStudents(section.id);
+  await refreshAttendanceForDate();
+}
+
+// Re-fetches just the attendance doc for currentSection + selectedDateStr
+// and re-renders — used right after picking a section, and again whenever
+// the date navigator moves to a different day (students don't need
+// re-fetching in that second case, only the day's records/submission do).
+async function refreshAttendanceForDate() {
+  if (!currentSection) return;
+  attendanceTbody.innerHTML =
     `<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--muted)">Loading...</td></tr>`;
-  await Promise.all([loadStudents(section.id), loadAttendance(section.id)]);
+  await loadAttendance(currentSection.id, selectedDateStr);
   renderTable();
+  renderSubmissionBar();
 }
 
 // ─── LOAD STUDENTS ────────────────────────────────────────────────────────────
@@ -184,11 +336,31 @@ async function loadStudents(sectionId) {
 }
 
 // ─── LOAD ATTENDANCE ──────────────────────────────────────────────────────────
-async function loadAttendance(sectionId) {
+async function loadAttendance(sectionId, dateForLookup) {
   try {
-    const snap = await getDoc(doc(db, "attendance", `${sectionId}_${dateStr}`));
-    attendanceRecs = snap.exists() ? snap.data().records || {} : {};
-  } catch { attendanceRecs = {}; }
+    const snap = await getDoc(doc(db, "attendance", `${sectionId}_${dateForLookup}`));
+    if (snap.exists()) {
+      const data = snap.data();
+      attendanceRecs = data.records || {};
+      docMeta = {
+        exists: true,
+        // A doc saved before the Submit button existed has no `submitted`
+        // field at all — grandfathered in as submitted, since back then
+        // every save WAS the final word for that day. Only an explicit
+        // false (a day someone started marking but never pressed Submit)
+        // reads as not-submitted.
+        submitted: data.submitted !== false,
+        submittedAt: data.submittedAt || null,
+        submittedBy: data.submittedBy || null,
+      };
+    } else {
+      attendanceRecs = {};
+      docMeta = { exists: false, submitted: false, submittedAt: null, submittedBy: null };
+    }
+  } catch {
+    attendanceRecs = {};
+    docMeta = { exists: false, submitted: false, submittedAt: null, submittedBy: null };
+  }
 }
 
 // ─── RENDER TABLE ─────────────────────────────────────────────────────────────
@@ -199,8 +371,7 @@ function renderTable() {
   // Admin/staff can mark ANY section. A secretary can only mark the section
   // they're actually assigned to — checked against their own account, not
   // just assumed from being logged in.
-  const canMark = isAdminOrStaff ||
-    (userRole === "secretary" && currentSection && secretarySections.includes(currentSection.id));
+  const canMark = canMarkCurrentSection();
 
   // Show/hide the Actions column header based on role — roster management
   // (deleting a student) stays admin/staff only, even for secretaries who can mark attendance.
@@ -243,8 +414,81 @@ function renderTable() {
   }
 }
 
+// ─── SUBMISSION STATUS BAR ────────────────────────────────────────────────────
+// Reflects docMeta for the currently selected section+date, and shows/hides
+// the Submit button based on who's logged in. This is the ONLY thing that
+// controls what Attendance Reports considers "official" for a given day —
+// see the isSubmitted check in reports.js's loadMonth().
+function renderSubmissionBar() {
+  if (!currentSection) { submissionBar.hidden = true; return; }
+  submissionBar.hidden = false;
+
+  const canMark = canMarkCurrentSection();
+  submitAttendanceBtn.hidden = !canMark;
+
+  if (docMeta.submitted) {
+    submissionBadge.textContent = "✓ Submitted";
+    submissionBadge.className   = "submission-badge submitted";
+
+    const parts = [];
+    if (docMeta.submittedBy) parts.push(`by ${docMeta.submittedBy}`);
+    const when = docMeta.submittedAt && typeof docMeta.submittedAt.toDate === "function"
+      ? docMeta.submittedAt.toDate()
+      : docMeta.submittedAt;
+    if (when instanceof Date && !isNaN(when)) {
+      parts.push(when.toLocaleString("en-PH", {
+        month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true,
+      }));
+    }
+    submissionDetail.textContent = parts.join(" · ");
+
+    submitAttendanceBtn.textContent = "↻ Re-submit";
+    submitAttendanceBtn.classList.remove("btn-primary");
+    submitAttendanceBtn.classList.add("btn-secondary");
+  } else {
+    submissionBadge.textContent = "⚠ Not Submitted";
+    submissionBadge.className   = "submission-badge pending";
+    submissionDetail.textContent = canMark
+      ? "Mark any exceptions below, then submit so this day counts on Attendance Reports."
+      : "This section hasn't submitted attendance for this day yet.";
+
+    submitAttendanceBtn.textContent = "✓ Submit Attendance";
+    submitAttendanceBtn.classList.remove("btn-secondary");
+    submitAttendanceBtn.classList.add("btn-primary");
+  }
+}
+
+submitAttendanceBtn.addEventListener("click", async () => {
+  if (!currentSection || !canMarkCurrentSection()) return;
+  submitAttendanceBtn.disabled = true;
+  try {
+    await setDoc(doc(db, "attendance", `${currentSection.id}_${selectedDateStr}`), {
+      sectionId: currentSection.id,
+      date: selectedDateStr,
+      records: attendanceRecs,
+      submitted: true,
+      submittedAt: serverTimestamp(),
+      submittedBy: auth.currentUser ? auth.currentUser.email : null,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+
+    docMeta = {
+      exists: true,
+      submitted: true,
+      submittedAt: new Date(), // optimistic stand-in until the doc is next re-read
+      submittedBy: auth.currentUser ? auth.currentUser.email : null,
+    };
+    renderSubmissionBar();
+  } catch (err) {
+    console.error("Submit failed:", err);
+    window.alert("Couldn't submit attendance: " + err.message);
+  } finally {
+    submitAttendanceBtn.disabled = false;
+  }
+});
+
 // ─── MARK ATTENDANCE ──────────────────────────────────────────────────────────
-// Manual 3-state cycle: Absent → Present → Late → Absent. It's the secretary's
+// Manual 3-state cycle: Present → Late → Absent → Present. It's the secretary's
 // call, not the clock's — the old version checked the current time at the
 // moment of the click, so clicking any time after the cutoff sent every
 // student straight to "late" and "present" became unreachable. Only "Late"
@@ -267,13 +511,30 @@ async function markAttendance(studentId) {
 
   if (newStatus === "present") delete attendanceRecs[studentId];
   else attendanceRecs[studentId] = { status: newStatus, timeIn: newTimeIn };
-  
+
   renderTable();
+
+  // The very first save for a section+date combo has to explicitly stamp
+  // submitted:false — otherwise a brand-new doc would have no `submitted`
+  // field at all, and get mistaken for one of the LEGACY docs from before
+  // this feature existed (which also lack the field, but are deliberately
+  // grandfathered in as submitted — see loadAttendance()). Every save
+  // after that first one omits the field entirely, so merge:true leaves
+  // whatever's already there untouched — only the Submit button above is
+  // allowed to flip it to true.
+  const payload = {
+    sectionId: currentSection.id, date: selectedDateStr,
+    records: attendanceRecs, updatedAt: serverTimestamp(),
+  };
+  if (!docMeta.exists) {
+    payload.submitted = false;
+    payload.createdAt = serverTimestamp();
+  }
+
   try {
-    await setDoc(doc(db, "attendance", `${currentSection.id}_${dateStr}`), {
-      sectionId: currentSection.id, date: dateStr,
-      records: attendanceRecs, updatedAt: serverTimestamp(),
-    });
+    await setDoc(doc(db, "attendance", `${currentSection.id}_${selectedDateStr}`), payload, { merge: true });
+    docMeta.exists = true;
+    renderSubmissionBar();
   } catch (e) { console.error("Save failed:", e); }
 }
 
@@ -323,10 +584,10 @@ async function deleteStudent(studentId, studentName) {
     currentStudents = currentStudents.filter(s => s.id !== studentId);
     if (attendanceRecs[studentId]) {
       delete attendanceRecs[studentId];
-      await setDoc(doc(db, "attendance", `${currentSection.id}_${dateStr}`), {
-        sectionId: currentSection.id, date: dateStr,
+      await setDoc(doc(db, "attendance", `${currentSection.id}_${selectedDateStr}`), {
+        sectionId: currentSection.id, date: selectedDateStr,
         records: attendanceRecs, updatedAt: serverTimestamp(),
-      });
+      }, { merge: true });
     }
     renderTable();
   } catch (err) {
@@ -364,6 +625,8 @@ async function deleteSection() {
     attendanceRecs        = {};
     classHeader.hidden         = true;
     attendanceTableWrap.hidden = true;
+    datePicker.hidden          = true;
+    submissionBar.hidden       = true;
     renderGradeTabs();
   } catch (err) {
     console.error("Delete section failed:", err);

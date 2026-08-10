@@ -66,7 +66,7 @@
 <main>
   <div class="page-header fx-rise-in">
     <span class="eyebrow">MODULE — ATTENDANCE</span>
-    <h1>Today’s <span class="text-gradient">Attendance</span></h1>
+    <h1><span id="attendance-heading-prefix">Today’s</span> <span class="text-gradient">Attendance</span></h1>
     <p id="attendance-date"></p>
   </div>
 
@@ -75,6 +75,18 @@
 
   <!-- Section tabs for selected grade (populated by JS) -->
   <div class="tab-bar" id="section-tabs"></div>
+
+  <!-- Date navigator — lets a secretary (or admin/staff) go back and fix
+       a previous school day's attendance, not just today's. Hidden until
+       a section is picked, same placement pattern as the month picker on
+       the Attendance Reports page. Bounded to [ATTENDANCE_START_DATE,
+       today] and skips weekends — see attendance.js. -->
+  <div id="date-picker" class="month-picker" hidden>
+    <button id="prev-day-btn" class="month-nav-btn" type="button" aria-label="Previous school day">&#8249;</button>
+    <input type="date" id="date-input" class="date-nav-input" aria-label="Attendance date">
+    <button id="next-day-btn" class="month-nav-btn" type="button" aria-label="Next school day">&#8250;</button>
+    <button id="jump-today-btn" class="btn-secondary" type="button" hidden>Jump to Today</button>
+  </div>
 
   <!-- Class info header -->
   <div id="class-header" class="class-header" hidden>
@@ -92,6 +104,19 @@
     <button id="delete-section-btn" class="delete-section-btn" hidden>
       🗑 Delete Section
     </button>
+  </div>
+
+  <!-- Submission status for the selected date — this is what the
+       Attendance Reports page checks to know whether this section's
+       attendance for this day is "official" yet. Badge clicks below
+       always save live, but a day only counts as submitted (and only
+       then shows up on Reports) once Submit is pressed — see
+       renderSubmissionBar() / the submit-attendance-btn handler in
+       attendance.js. -->
+  <div id="submission-bar" class="submission-bar" hidden>
+    <span id="submission-badge" class="submission-badge"></span>
+    <span id="submission-detail" class="submission-detail"></span>
+    <button id="submit-attendance-btn" class="btn-primary" type="button" hidden>Submit Attendance</button>
   </div>
 
   <!-- Attendance table -->
