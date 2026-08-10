@@ -122,8 +122,30 @@
   </div>
 
   <p id="feed-count" class="feed-count"></p>
-  <div id="lost-found-feed" class="feed-grid fx-stagger">
-    <p class="muted">Loading reports...</p>
+  <div id="lost-found-feed" class="feed-grid fx-stagger" aria-busy="true">
+    <div class="announcement-card">
+      <div class="skel" style="aspect-ratio:4/3;"></div>
+      <div class="announcement-body">
+        <span class="skel skel-line" style="width:60%;height:1rem;margin-bottom:10px;"></span>
+        <span class="skel skel-line" style="width:100%;"></span>
+        <span class="skel skel-line" style="width:80%;"></span>
+      </div>
+    </div>
+    <div class="announcement-card">
+      <div class="skel" style="aspect-ratio:1/1;"></div>
+      <div class="announcement-body">
+        <span class="skel skel-line" style="width:50%;height:1rem;margin-bottom:10px;"></span>
+        <span class="skel skel-line" style="width:95%;"></span>
+      </div>
+    </div>
+    <div class="announcement-card">
+      <div class="skel" style="aspect-ratio:4/3;"></div>
+      <div class="announcement-body">
+        <span class="skel skel-line" style="width:70%;height:1rem;margin-bottom:10px;"></span>
+        <span class="skel skel-line" style="width:90%;"></span>
+        <span class="skel skel-line" style="width:60%;"></span>
+      </div>
+    </div>
   </div>
 </main>
 

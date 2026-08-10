@@ -125,6 +125,27 @@ const submissionBadge     = document.getElementById("submission-badge");
 const submissionDetail    = document.getElementById("submission-detail");
 const submitAttendanceBtn = document.getElementById("submit-attendance-btn");
 
+// ─── SKELETON HELPERS ─────────────────────────────────────────────────────────
+// Placeholder markup shown the moment a fetch starts (grade tabs while
+// loadSections() runs, table rows while refreshAttendanceForDate() runs),
+// cleared out again the moment real content — or a real empty/error
+// message — is ready to take its place.
+function buildTabSkeleton(n = 3) {
+  const widths = ["88px", "72px", "104px"];
+  return Array.from({ length: n }, (_, i) => `<span class="tab-btn skel" style="width:${widths[i % widths.length]};"></span>`).join("");
+}
+
+function buildAttendanceSkeleton(n = 6) {
+  return Array.from({ length: n }, () => `
+    <tr>
+      <td><span class="skel skel-text">00</span></td>
+      <td><span class="skel skel-line" style="width:65%;"></span></td>
+      <td><span class="skel skel-text">M</span></td>
+      <td><span class="status-badge skel" style="width:64px;height:1.5em;"></span></td>
+      <td><span class="skel skel-text">00:00</span></td>
+    </tr>`).join("");
+}
+
 // ─── DATE NAVIGATOR SETUP ─────────────────────────────────────────────────────
 dateInput.min   = toDateStr(ATTENDANCE_START_DATE);
 dateInput.max   = todayStr;
@@ -224,6 +245,7 @@ function canMarkCurrentSection() {
 
 // ─── LOAD SECTIONS ────────────────────────────────────────────────────────────
 async function loadSections() {
+  gradeTabs.innerHTML = buildTabSkeleton();
   try {
     // No orderBy here — composite indexes aren't auto-created on new projects.
     // We sort the result in JavaScript instead, which works without any index.
@@ -234,6 +256,7 @@ async function loadSections() {
     renderGradeTabs();
   } catch (err) {
     console.error("loadSections failed:", err);
+    gradeTabs.innerHTML = "";
     attendanceMsg.textContent = `Couldn't load sections: ${err.message}`;
     attendanceMsg.hidden = false;
   }
@@ -241,6 +264,7 @@ async function loadSections() {
 
 // ─── GRADE TABS ───────────────────────────────────────────────────────────────
 function renderGradeTabs() {
+  gradeTabs.innerHTML = "";
   const visible = getVisibleSections();
   const grades  = [...new Set(visible.map((s) => s.grade))].sort((a, b) => a - b);
   if (grades.length === 0) {
@@ -255,7 +279,6 @@ function renderGradeTabs() {
     return;
   }
   attendanceMsg.hidden = true;
-  gradeTabs.innerHTML  = "";
   grades.forEach((grade, i) => {
     const btn = document.createElement("button");
     btn.type = "button"; btn.className = "tab-btn";
@@ -318,8 +341,7 @@ async function selectSection(section) {
 // re-fetching in that second case, only the day's records/submission do).
 async function refreshAttendanceForDate() {
   if (!currentSection) return;
-  attendanceTbody.innerHTML =
-    `<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--muted)">Loading...</td></tr>`;
+  attendanceTbody.innerHTML = buildAttendanceSkeleton();
   await loadAttendance(currentSection.id, selectedDateStr);
   renderTable();
   renderSubmissionBar();

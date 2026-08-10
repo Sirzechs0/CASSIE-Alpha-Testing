@@ -789,14 +789,17 @@ main { max-width: 1160px; margin: 0 auto; padding: 44px 24px 72px; position: rel
   letter-spacing: 0.08em; margin-bottom: 7px; color: var(--muted);
 }
 .form-field input,
-.form-field textarea {
+.form-field textarea,
+.form-field select {
   width: 100%; padding: 11px 13px; border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface-2); color: var(--ink); font-size: 0.95rem;
   font-family: var(--font-body); transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease);
 }
+.form-field select { cursor: pointer; }
 .form-field input:focus,
-.form-field textarea:focus { outline: none; border-color: var(--accent-1); box-shadow: 0 0 0 3px var(--glow); }
+.form-field textarea:focus,
+.form-field select:focus { outline: none; border-color: var(--accent-1); box-shadow: 0 0 0 3px var(--glow); }
 
 .checkbox-label {
   display: flex !important;
@@ -2692,3 +2695,145 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .not-submitted-banner[hidden] { display: none; }
 .not-submitted-banner-icon { flex-shrink: 0; color: var(--danger); font-weight: 700; }
+/* ============================================================================
+   SKELETON LOADERS
+   Generic shimmer building blocks dropped into a container while its real
+   content is still being fetched, so a page never shows a blank gap or a
+   plain "Loading..." string — the space is already the right shape, just
+   shimmering instead of filled in. Two ways to use it:
+     • .skel on an empty placeholder element (a fake card, row, or bar) —
+       gets a shimmering background, sized however that placeholder needs.
+     • .skel-text on a real element that already holds fallback text (a
+       stat number, a contact value) — just hides the text color, so
+       clearing the loading state later is a single class removal, no
+       textContent juggling.
+   The sweep itself is a plain CSS animation, so it's automatically frozen
+   to a single near-instant frame by the prefers-reduced-motion rule near
+   the top of this file — nothing extra to do for that.
+   ============================================================================ */
+.skel {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+.skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(240, 239, 233, 0.06), transparent);
+  animation: skel-sweep 1.6s ease-in-out infinite;
+}
+[data-theme="light"] .skel::after {
+  background: linear-gradient(90deg, transparent, rgba(23, 22, 26, 0.05), transparent);
+}
+@keyframes skel-sweep {
+  100% { transform: translateX(100%); }
+}
+
+.skel-text { color: transparent !important; }
+
+.skel-line { display: block; height: 0.85em; }
+.skel-line + .skel-line { margin-top: 8px; }
+.skel-circle { border-radius: 50%; }
+
+.skel-w-25  { width: 25%; }
+.skel-w-40  { width: 40%; }
+.skel-w-50  { width: 50%; }
+.skel-w-60  { width: 60%; }
+.skel-w-75  { width: 75%; }
+.skel-w-100 { width: 100%; }
+
+/* Dashboard stat numbers while sections/announcements are still being
+   counted — sized to roughly match a real number's footprint so the stats
+   bar doesn't visibly resize once the count-up animation takes over. */
+.stat-number.skel-text {
+  display: inline-block;
+  width: 2.4em;
+  height: 1em;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+.stat-number.skel-text::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(240, 239, 233, 0.06), transparent);
+  animation: skel-sweep 1.6s ease-in-out infinite;
+}
+[data-theme="light"] .stat-number.skel-text::after {
+  background: linear-gradient(90deg, transparent, rgba(23, 22, 26, 0.05), transparent);
+}
+
+/* Dashboard "Latest Announcements" cards — shown immediately in place of
+   the real ones so the block never pops in from nothing (see
+   dashboard.js: it un-hides this block right away with skeleton cards,
+   then swaps in real ones, or hides the block again if there's genuinely
+   nothing posted yet). */
+.dash-announce-card.is-skel { cursor: default; }
+.dash-announce-card.is-skel:hover { transform: none; border-color: var(--line); background: var(--surface); }
+.dash-announce-card-media.skel { aspect-ratio: 1; }
+
+/* ---------- Support page ---------- */
+.support-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 44px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .support-grid { grid-template-columns: 1fr; }
+}
+
+.contact-info-list {
+  display: flex;
+  flex-direction: column;
+  margin: 24px 0 0;
+}
+.contact-info-item {
+  display: flex;
+  gap: 16px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.contact-info-item:first-child { padding-top: 0; }
+.contact-info-icon {
+  flex: 0 0 auto;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: var(--accent-1);
+  background: var(--surface);
+}
+.contact-info-icon svg { width: 19px; height: 19px; }
+.contact-info-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding-top: 2px; }
+.contact-info-label {
+  font-family: var(--font-mono); font-size: 0.66rem; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted-2);
+}
+.contact-info-value {
+  font-family: var(--font-body); font-size: 0.98rem; font-weight: 600; color: var(--ink);
+  word-break: break-word;
+}
+.contact-info-value.skel-text { display: inline-block; min-width: 140px; }
+.contact-info-value a { color: var(--ink); }
+.contact-info-value a:hover { color: var(--accent-1); }
+.contact-info-note { color: var(--muted); font-size: 0.82rem; }
+
+.support-quicklinks {
+  margin-top: 26px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent-1);
+  border-radius: var(--radius-md);
+  padding: 22px 24px;
+}
+.support-quicklinks p { color: var(--muted); font-size: 0.92rem; line-height: 1.6; margin: 12px 0 16px; }
+.support-quicklinks .btn-secondary { margin-bottom: 0; }
+
+.support-form-card h2 { margin-bottom: 6px; }
+.support-form-intro { color: var(--muted); font-size: 0.88rem; margin: 0 0 22px; }

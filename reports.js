@@ -73,6 +73,43 @@ const notSubmittedBannerText = document.getElementById("not-submitted-banner-tex
 const reportsAuthGate = document.getElementById("reports-auth-gate");
 const reportsContent  = document.getElementById("reports-content");
 
+// ─── SKELETON HELPERS ─────────────────────────────────────────────────────────
+// Placeholder markup shown the moment a fetch starts (grade tabs while
+// loadSections() runs, the calendar/overview/leaderboards while
+// loadMonth()/loadLeaderboard() run), swapped back out for real content —
+// or a real empty/error message — the moment that fetch resolves.
+function buildTabSkeleton(n = 3) {
+  const widths = ["88px", "72px", "104px"];
+  return Array.from({ length: n }, (_, i) => `<span class="tab-btn skel" style="width:${widths[i % widths.length]};"></span>`).join("");
+}
+
+function buildCalendarSkeleton(n = 28) {
+  return Array.from({ length: n }, () => `
+    <div class="cal-cell">
+      <span class="cal-day-num skel skel-text">00</span>
+      <span class="cal-dot skel"></span>
+    </div>`).join("");
+}
+
+function setOverviewLoading(isLoading) {
+  [ovDays, ovAvg, ovLate, ovPerfect, ovNotSubmitted].forEach((el) => {
+    if (!el) return;
+    el.classList.toggle("skel", isLoading);
+    el.classList.toggle("skel-text", isLoading);
+  });
+}
+
+function buildLeaderboardSkeleton(n = 3) {
+  return Array.from({ length: n }, () => `
+    <li class="leaderboard-row">
+      <div class="leaderboard-row-header">
+        <span class="leaderboard-rank skel skel-text">0</span>
+        <span class="leaderboard-section-name skel skel-line" style="width:60%;"></span>
+        <span class="leaderboard-stats"><span class="leaderboard-pct skel skel-text">00%</span></span>
+      </div>
+    </li>`).join("");
+}
+
 // ─── AUTH GATE ────────────────────────────────────────────────────────────────
 // Attendance reports show student-level records, so the whole page is
 // gated behind login — logged out, all that's visible is reportsAuthGate.
@@ -94,6 +131,7 @@ onAuthStateChanged(auth, (user) => {
 
 // ─── LOAD SECTIONS ────────────────────────────────────────────────────────────
 async function loadSections() {
+  gradeTabs.innerHTML = buildTabSkeleton();
   try {
     const snap = await getDocs(collection(db, "sections"));
     allSections = snap.docs
@@ -102,6 +140,7 @@ async function loadSections() {
     renderGradeTabs();
   } catch (err) {
     console.error("loadSections failed:", err);
+    gradeTabs.innerHTML = "";
     reportMsg.textContent = `Couldn't load sections: ${err.message}`;
     reportMsg.hidden = false;
   }
@@ -109,6 +148,7 @@ async function loadSections() {
 
 // ─── GRADE TABS ───────────────────────────────────────────────────────────────
 function renderGradeTabs() {
+  gradeTabs.innerHTML = "";
   const grades = [...new Set(allSections.map((s) => s.grade))].sort((a, b) => a - b);
   if (grades.length === 0) {
     reportMsg.textContent = "No attendance data available yet.";
@@ -116,7 +156,6 @@ function renderGradeTabs() {
     if (!leaderboardView.hidden) loadLeaderboard();
     return;
   }
-  gradeTabs.innerHTML = "";
   grades.forEach((grade, i) => {
     const btn = document.createElement("button");
     btn.type = "button"; btn.className = "tab-btn";
@@ -199,8 +238,8 @@ async function loadMonth() {
   monthLabel.textContent = new Date(viewYear, viewMonth, 1)
     .toLocaleDateString("en-PH", { month: "long", year: "numeric" });
 
-  reportCalendar.innerHTML =
-    `<p class="muted" style="grid-column:1/-1;text-align:center;padding:20px;">Loading...</p>`;
+  reportCalendar.innerHTML = buildCalendarSkeleton();
+  setOverviewLoading(true);
   dayDetail.hidden = true;
 
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
@@ -283,6 +322,7 @@ function rateClass(rate) {
 
 // ─── OVERVIEW CARDS ───────────────────────────────────────────────────────────
 function renderOverview() {
+  setOverviewLoading(false);
   const recordedDates = Object.keys(monthRecords);
   const notSubmittedDates = Object.keys(monthNotSubmitted);
   const total = currentStudents.length;
@@ -547,7 +587,7 @@ async function loadLeaderboard() {
 
   leaderboardMsg.hidden = true;
   if (notSubmittedBanner) notSubmittedBanner.hidden = true;
-  lists.forEach((el) => { el.innerHTML = `<li class="leaderboard-empty">Loading...</li>`; });
+  lists.forEach((el) => { el.innerHTML = buildLeaderboardSkeleton(); });
 
   if (allSections.length === 0) return; // renderGradeTabs() re-calls this once sections arrive
 

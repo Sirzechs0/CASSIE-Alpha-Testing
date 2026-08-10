@@ -64,6 +64,25 @@ service cloud.firestore {
       allow create, update, delete: if isStaffOrAdmin();
     }
 
+    // Support page contact-form submissions. Anyone can submit — logged in
+    // or not, since the whole point is letting a visitor without an account
+    // reach the team — but only admin/staff can read, update, or delete
+    // them afterward, so messages aren't publicly browsable once sent.
+    // Light shape validation on create (required fields present and the
+    // right type) keeps obviously-malformed writes out without needing a
+    // Cloud Function; it's not a spam filter, just a sanity check.
+    match /supportMessages/{id} {
+      allow create: if request.resource.data.keys().hasAll(
+                        ['firstName', 'lastName', 'email', 'subject', 'message', 'timestamp']
+                      ) &&
+                      request.resource.data.firstName is string &&
+                      request.resource.data.lastName  is string &&
+                      request.resource.data.email     is string &&
+                      request.resource.data.subject   is string &&
+                      request.resource.data.message   is string;
+      allow read, update, delete: if isStaffOrAdmin();
+    }
+
     // Class lists (sections + students) — public read, admin/staff write only.
     // Secretaries can VIEW their section's roster but cannot import, edit,
     // or delete it — that responsibility stays with admin/staff.

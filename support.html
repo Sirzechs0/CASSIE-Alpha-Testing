@@ -66,13 +66,118 @@
 <main>
   <div class="page-header fx-rise-in">
     <span class="eyebrow">MODULE — SUPPORT</span>
-    <h1>Support</h1>
-    <p>Help with C.A.S.S.I.E. — guides, troubleshooting, and how to reach us.</p>
+    <h1>Let's <span class="text-gradient">Connect</span></h1>
+    <p>Whether you've run into a bug, have a question about attendance or an announcement, or just want to reach the team behind C.A.S.S.I.E. — we'd love to hear from you.</p>
   </div>
 
-  <div class="placeholder-box fx-rise-in">
-    <span class="eyebrow">IN DEVELOPMENT</span>
-    <p>This feature is being built next — check back soon.</p>
+  <div class="support-grid">
+
+    <div class="support-info">
+      <span class="eyebrow">CONTACT INFORMATION</span>
+      <div class="contact-info-list fx-stagger">
+
+        <div class="contact-info-item">
+          <div class="contact-info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M4 7l8 6 8-6"/></svg>
+          </div>
+          <div class="contact-info-body">
+            <span class="contact-info-label">Email</span>
+            <strong class="contact-info-value skel skel-text" id="contact-email">Loading</strong>
+            <span class="contact-info-note">We respond within 1–2 school days.</span>
+          </div>
+        </div>
+
+        <div class="contact-info-item">
+          <div class="contact-info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h-2a5 5 0 0 0-5 5v3H6v4h2v6h4v-6h3l1-4h-4V8a1 1 0 0 1 1-1h3z"/></svg>
+          </div>
+          <div class="contact-info-body">
+            <span class="contact-info-label">Facebook</span>
+            <strong class="contact-info-value"><a href="#" target="_blank" rel="noopener">Pasig City Science High School</a></strong>
+            <span class="contact-info-note">Follow us for announcements, event coverage, and updates.</span>
+          </div>
+        </div>
+
+        <div class="contact-info-item">
+          <div class="contact-info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h3.5l1.5 4.5-2 1.5a12 12 0 0 0 6 6l1.5-2 4.5 1.5V19a2 2 0 0 1-2 2C10.5 21 3 13.5 3 6a2 2 0 0 1 2-2z"/></svg>
+          </div>
+          <div class="contact-info-body">
+            <span class="contact-info-label">Phone</span>
+            <strong class="contact-info-value skel skel-text" id="contact-phone">Loading</strong>
+            <span class="contact-info-note">Monday–Friday, 7:00 AM – 5:00 PM</span>
+          </div>
+        </div>
+
+        <div class="contact-info-item">
+          <div class="contact-info-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.4"/></svg>
+          </div>
+          <div class="contact-info-body">
+            <span class="contact-info-label">Visit Us</span>
+            <strong class="contact-info-value skel skel-text" id="contact-address">Loading</strong>
+            <span class="contact-info-note">Drop by the Registrar's Office during school hours.</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="support-quicklinks fx-rise-in">
+        <span class="eyebrow">BEFORE YOU REACH OUT</span>
+        <p>Looking for a quick answer? Our FAQs cover the most common questions about attendance, announcements, and using C.A.S.S.I.E. — you might find what you need without waiting for a reply.</p>
+        <a href="faqs.html" class="btn-secondary">Browse FAQs <span class="arrow">→</span></a>
+      </div>
+    </div>
+
+    <div class="support-form-card form-card fx-rise-in">
+      <h2>Send a Message</h2>
+      <p class="support-form-intro">Fill out the form below and we'll get back to you as soon as we can.</p>
+      <form id="support-form">
+        <div class="import-meta-grid">
+          <div class="form-field">
+            <label for="support-first-name">First Name</label>
+            <input type="text" id="support-first-name" required placeholder="Juan">
+          </div>
+          <div class="form-field">
+            <label for="support-last-name">Last Name</label>
+            <input type="text" id="support-last-name" required placeholder="Dela Cruz">
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="support-email">Email Address</label>
+          <input type="email" id="support-email" required placeholder="you@example.com">
+        </div>
+
+        <div class="form-field">
+          <label for="support-subject">Subject</label>
+          <select id="support-subject" required>
+            <option value="" disabled selected>Select a subject</option>
+            <option value="Technical Issue / Bug Report">Technical Issue / Bug Report</option>
+            <option value="Account or Login Help">Account or Login Help</option>
+            <option value="Attendance Question">Attendance Question</option>
+            <option value="Lost &amp; Found">Lost &amp; Found</option>
+            <option value="Announcement or Event Inquiry">Announcement or Event Inquiry</option>
+            <option value="General Inquiry">General Inquiry</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="support-section">Year Level / Section <span class="field-optional">(optional)</span></label>
+          <input type="text" id="support-section" placeholder="e.g. Grade 11 – Escher">
+        </div>
+
+        <div class="form-field">
+          <label for="support-message">Message</label>
+          <textarea id="support-message" rows="5" required placeholder="Tell us what's on your mind..."></textarea>
+        </div>
+
+        <button type="submit" id="support-submit-btn" class="btn-primary">Send Message</button>
+      </form>
+      <p id="support-status" class="status-text"></p>
+    </div>
+
   </div>
 </main>
 
@@ -130,6 +235,7 @@
 </footer>
 <script>document.getElementById("footer-year").textContent = new Date().getFullYear();</script>
 
+<script type="module" src="support.js"></script>
 <script type="module" src="auth-ui.js"></script>
 <script src="nav.js"></script>
 <script type="module" src="suspension-banner.js"></script>

@@ -271,6 +271,7 @@ function updateFeedCount(filteredCount, totalCount) {
 
 function renderFeed() {
   if (allAnnouncements === null) return; // still loading
+  feedContainer.removeAttribute("aria-busy");
 
   if (allAnnouncements.length === 0) {
     feedCount.textContent = "";

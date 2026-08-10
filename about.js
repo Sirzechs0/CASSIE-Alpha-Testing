@@ -107,6 +107,114 @@ const orgChartBody = document.getElementById("orgchart-body");
 const coursesBody = document.getElementById("courses-body");
 const admissionBody = document.getElementById("admission-body");
 
+// ════════════════════════════════════════════════════════════════════════════════
+// SKELETON LOADING STATE
+// Painted immediately, synchronously, before the auth check or the
+// Firestore fetch below have resolved — every section container in
+// about.html starts out as an empty <div>, so without this the page would
+// show a blank gap where each section's real content will eventually
+// land. renderAll() (only called once BOTH authReady and dataReady are
+// true) overwrites every one of these with real content exactly the way
+// it always has — nothing here needs to be manually cleared.
+// ════════════════════════════════════════════════════════════════════════════════
+
+function skelBar(width = "100%", extra = "") {
+  return `<span class="skel skel-line" style="width:${width};${extra}"></span>`;
+}
+function repeat(n, fn) {
+  return Array.from({ length: n }, fn).join("");
+}
+
+function renderSkeletons() {
+  heroContactBar.innerHTML = repeat(4, () => `
+    <div class="about-contact-item">
+      <span class="about-contact-label">&nbsp;</span>
+      ${skelBar("70%")}
+    </div>`);
+
+  purposeBody.innerHTML = repeat(2, () => `
+    <div class="purpose-card">
+      ${skelBar("18%", "height:1rem;margin-bottom:14px;")}
+      ${skelBar("45%", "height:1.3rem;margin-bottom:12px;")}
+      ${skelBar("100%")}
+      ${skelBar("85%")}
+    </div>`);
+
+  aboutBody.innerHTML = `
+    <div class="about-desc">${skelBar("100%")}${skelBar("100%")}${skelBar("60%")}</div>
+    <div class="motto-callout">
+      ${skelBar("30%", "height:0.7rem;margin-bottom:10px;")}
+      ${skelBar("90%", "height:1.1rem;")}
+    </div>`;
+
+  historyBody.innerHTML = `
+    ${skelBar("100%")}${skelBar("95%")}${skelBar("50%")}
+    <div class="chip-list" style="margin-top:16px;">
+      ${repeat(3, () => skelBar("110px", "height:1.8rem;border-radius:999px;display:inline-block;"))}
+    </div>
+    <div class="history-timeline">
+      ${repeat(2, () => `
+        <div class="timeline-row">
+          <div class="timeline-marker">${skelBar("54px", "height:1.6rem;border-radius:999px;")}</div>
+          <div class="timeline-card">
+            ${skelBar("30%", "height:0.7rem;margin-bottom:8px;")}
+            ${skelBar("50%", "height:1rem;margin-bottom:8px;")}
+            ${skelBar("90%")}
+          </div>
+        </div>`)}
+    </div>`;
+
+  symbolsBody.innerHTML = repeat(3, () => `
+    <div class="symbol-card">
+      <div class="symbol-card-image skel"></div>
+      ${skelBar("60%", "height:1.05rem;margin-bottom:8px;")}
+      ${skelBar("100%")}
+    </div>`);
+
+  awardsBody.innerHTML = repeat(3, () => `
+    <div class="award-item">
+      ${skelBar("70px", "height:1.6rem;border-radius:999px;flex-shrink:0;")}
+      <div class="award-item-body" style="flex:1;">
+        ${skelBar("55%", "height:1rem;margin-bottom:8px;")}
+        ${skelBar("90%")}
+      </div>
+    </div>`);
+
+  orgChartBody.innerHTML = repeat(4, () => `
+    <div class="org-card">
+      <div class="org-card-photo skel"></div>
+      ${skelBar("70%", "height:0.96rem;margin:0 auto 6px;")}
+      ${skelBar("50%", "height:0.8rem;margin:0 auto;")}
+    </div>`);
+
+  coursesBody.innerHTML = `
+    <div class="course-blocks">
+      ${repeat(2, () => `
+        <div class="course-block">
+          ${skelBar("40%", "height:0.68rem;margin-bottom:12px;")}
+          ${skelBar("100%")}${skelBar("80%")}
+        </div>`)}
+    </div>
+    <div class="chip-list" style="margin-top:20px;">
+      ${repeat(4, () => skelBar("90px", "height:1.8rem;border-radius:999px;display:inline-block;"))}
+    </div>`;
+
+  admissionBody.innerHTML = `
+    ${skelBar("100%")}${skelBar("70%")}
+    <ul class="checklist" style="margin-top:20px;">
+      ${repeat(4, () => `<li>${skelBar("60%")}</li>`)}
+    </ul>
+    <div class="process-steps">
+      ${repeat(3, () => `
+        <div class="process-step">
+          ${skelBar("32px", "height:32px;border-radius:50%;margin-bottom:14px;")}
+          ${skelBar("60%", "height:1.05rem;margin-bottom:8px;")}
+          ${skelBar("90%")}
+        </div>`)}
+    </div>`;
+}
+renderSkeletons();
+
 // ─── AUTH ─────────────────────────────────────────────────────────────────
 // The role check (needs Firestore) and the page content load (also needs
 // Firestore) run at the same time, independently. Both set a "ready" flag

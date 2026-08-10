@@ -25,7 +25,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ├── faqs.html/js               # FAQ accordion
 ├── clubs.html                 # Student organizations
 ├── staff-directory.html       # Personnel listing
-├── support.html                # Support placeholder page (linked from header + footer)
+├── support.html/js            # "Let's Connect" support page — contact info (pulled from siteContent/about's hero fields) + a contact form that writes to supportMessages
 ├── login.html/js              # Firebase Auth login page
 ├── firebase-config.js         # Single Firebase init (exports auth, db)
 ├── auth-ui.js                 # Shared login/logout header state
@@ -48,6 +48,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `lostAndFound` | Lost/found item reports | `type` (lost/found), `title`, `description`, `location`, `date`, `contact`, `imageUrls[]` |
 | `users` | Staff accounts with roles | `role` (admin/staff/secretary), `assignedSections[]` (for secretaries) |
 | `siteContent` | Admin-editable content pages, one doc per page (e.g. `siteContent/about`) | one top-level field per page section — see about.js `DEFAULTS` for the full shape |
+| `supportMessages` | Contact-form submissions from the Support page | `firstName`, `lastName`, `email`, `subject`, `yearSection`, `message`, `timestamp` |
 
 ### Roles & Permissions
 - **Admin/Staff**: Full CRUD on all modules, can import PDFs, delete sections, edit the About page
@@ -56,6 +57,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Site-wide Header & Navigation
 Every page repeats the same header/footer markup — there's no templating (see "No build step" below), so a nav or footer change means editing it in **every** HTML file. The header nav has five top-level items — Dashboard, Announcements, About, Support, and an "Explore" dropdown — so it stays on one line instead of wrapping on medium-width screens. Explore holds the rest: Attendance, Attendance Reports, Lost & Found, FAQs, Clubs, Staff Directory. The dropdown is plain markup (`.nav-dropdown` / `.nav-dropdown-toggle` / `.nav-dropdown-menu` in `style.css`) driven by `nav.js` — click to open/close (not hover, so it behaves the same on touch), and it closes on outside click, Escape, or tabbing away. The same markup renders as a floating popup on desktop and an in-place expanding section on mobile, switching at the existing 860px breakpoint.
+
+### Skeleton Loading States
+`style.css` defines a small reusable shimmer system — `.skel` (background + sweep animation, for an empty placeholder element) and `.skel-text` (hides an element's own fallback text without removing it, for something like a stat number that already holds placeholder content) — used anywhere a page fetches data on load, instead of a plain "Loading..." string or a blank gap. The pattern: build placeholder markup that reuses the REAL component's own classes (a fake `.dash-announce-card`, `.cal-cell`, `.tab-btn`, `.event-card`, etc.) with `.skel`/`.skel-text` on the parts that would hold real content, so the skeleton is already the right shape and size and nothing visibly shifts once real content swaps in. Currently applied on: Dashboard (stats bar + latest announcements), Announcements and Lost & Found (feed), Attendance Reports (calendar + overview stats + leaderboards), Attendance (table rows + grade/section tabs), About (every section, painted synchronously before the auth+data fetch resolves — see `renderSkeletons()` in `about.js`), FAQs (accordion), and Support (contact info cards). Reuse this same pattern — real component classes plus `.skel`/`.skel-text` — for any new page that loads data asynchronously, rather than inventing a new loading convention.
 
 ## Development
 
@@ -115,6 +119,9 @@ Public content page (hero, vision/mission, history timeline, symbols, awards, or
 - Two shared list-editor helpers (`renderStringListEditor`, `renderObjectListEditor`) back every add/remove list in the file (fast facts, electives, symbols, awards, principals, org chart, admission steps) — extend those rather than writing a new one-off editor if another list field gets added later.
 - Images (hero background, a symbol's photo, an org chart member's photo) go through the same ImgBB pattern as Announcements/Lost & Found, via `buildImagePicker()` / `resolveImage()`.
 
+### Support (`support.js`)
+"Let's Connect"-style contact page: a left column of contact info cards (Email, Facebook, Phone, Visit Us) plus a "Before You Reach Out" callout pointing at the FAQs, and a right-column contact form. Deliberately reuses `siteContent/about`'s hero fields (`email`, `contactNumber`/`landline`, `address`) for the three dynamic contact cards instead of maintaining a second copy of the same school contact info — editing them via the About page's Hero "✎ Edit" panel updates both pages at once, and falls back to the same bracketed-placeholder text (`[Contact Number]`, etc.) as `about.js`'s own `DEFAULTS` when nothing's been filled in yet. The Facebook card is a static `href="#"` (same convention as the footer social icons) for Luck to paste the real URL into directly. The form has no auth gate — anyone can submit — and writes to `supportMessages` (`firstName`, `lastName`, `email`, `subject`, `yearSection`, `message`, `timestamp`); nothing in the UI reads that collection back yet, so check submissions via the Firebase Console (or build an admin inbox later) until something does.
+
 ### Auth Flow
 `auth-ui.js` runs on every page: listens to `onAuthStateChanged`, swaps "Log In" ↔ "Log Out" in header. Role checks happen per-page (e.g., `attendance.js` reads `users/{uid}.role`).
 
@@ -167,4 +174,4 @@ firebase deploy --only firestore:rules
 - **PDF.js worker** configured in `attendance.js:16-18` — must match pdf.js version.
 - **Announcements images are optional** — `getImageUrls(data)` can return an empty array; always check `.length` before assuming a cover photo exists (see the placeholder fallback in `renderEventMedia()`).
 - **Dashboard hero** (`dashboard.js`) scans the 5 most recent announcements for the first one WITH a photo, since images are now optional — it won't necessarily feature the literal latest post if that one happens to be text-only.
-- **`style.css` uses CRLF line endings throughout** — if editing by hand (not through Claude), keep new additions consistent or the file will end up with mixed line endings.
+- **Most files use CRLF line endings, not just `style.css`** — `style.css`, every `.html` file, and every `.js` file EXCEPT `lost-and-found.html`/`lost-and-found.js` (which are plain LF, an existing inconsistency, not a bug to "fix" by converting them) are CRLF throughout. If editing any of the CRLF files by hand (not through Claude), keep new additions consistent or the file will end up with mixed line endings within itself — check with `cat -A` or a hex viewer if unsure, since most editors show CRLF and LF identically on screen.

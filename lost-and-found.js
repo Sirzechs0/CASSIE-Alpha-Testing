@@ -208,6 +208,7 @@ async function loadReports() {
 
 function renderFeed() {
   if (allReports === null) return; // still loading
+  feedContainer.removeAttribute("aria-busy");
 
   feedCount.textContent = allReports.length
     ? `${allReports.length} report${allReports.length > 1 ? "s" : ""}`

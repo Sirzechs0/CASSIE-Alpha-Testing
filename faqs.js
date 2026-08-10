@@ -20,6 +20,16 @@ const faqList = document.getElementById("faq-list");
 let isAdminOrStaff = false;
 let allFaqs = [];
 
+// Shown the moment loadFaqs() starts, replaced by the real accordion (or a
+// real "No FAQs yet" message) once the fetch resolves.
+function buildFaqSkeleton() {
+  const widths = ["68%", "54%", "61%", "45%"];
+  return widths.map((w) => `
+    <div class="faq-item">
+      <div class="faq-question"><span class="skel skel-line" style="width:${w};height:1rem;"></span></div>
+    </div>`).join("");
+}
+
 // ---------- Show/hide the admin form based on login + role ----------
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -42,7 +52,7 @@ onAuthStateChanged(auth, async (user) => {
 
 // ---------- Load all FAQs ----------
 async function loadFaqs() {
-  faqList.innerHTML = "<p class='muted'>Loading FAQs...</p>";
+  faqList.innerHTML = buildFaqSkeleton();
   try {
     const q = query(collection(db, "faqs"), orderBy("createdAt", "desc"));
     const snapshot = await getDocs(q);
