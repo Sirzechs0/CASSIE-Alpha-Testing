@@ -64,6 +64,18 @@ service cloud.firestore {
       allow create, update, delete: if isStaffOrAdmin();
     }
 
+    // Clubs — public read, admin/staff write only. One doc per club, doc ID
+    // is a fixed slug from CLUB_LIST in clubs.js (e.g. "alchemist", "yes-o").
+    // Only the editable content (logo/description/events/achievements/
+    // socials) lives here — the club roster itself (name/tagline/category)
+    // is fixed in clubs.js, not stored in Firestore. Same create+update
+    // coverage as siteContent above, since clubs.js also saves with
+    // setDoc(..., {merge: true}).
+    match /clubs/{clubId} {
+      allow read: if true;
+      allow create, update, delete: if isStaffOrAdmin();
+    }
+
     // Support page contact-form submissions. Anyone can submit — logged in
     // or not, since the whole point is letting a visitor without an account
     // reach the team — but only admin/staff can read, update, or delete

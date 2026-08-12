@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Tech Stack:**
 - Pure vanilla JavaScript (ES modules), HTML, CSS — no build step, no bundler
 - Firebase Auth + Firestore (via CDN: `firebasejs/12.15.0`)
-- ImgBB API for image hosting (API key in `announcements.js` and `lost-and-found.js`)
+- ImgBB API for image hosting (API key in `announcements.js`, `lost-and-found.js`, `about.js`, and `clubs.js`)
 - pdf.js (CDN) for PDF text extraction in attendance import
 
 **Project Structure:**
@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ├── lost-and-found.html/js     # Lost/Found reports with CRUD
 ├── about.html/js              # About page: hero, history, symbols, admissions — per-section admin edit
 ├── faqs.html/js               # FAQ accordion
-├── clubs.html                 # Student organizations
+├── clubs.html/js              # Student organizations — fixed roster of ~28 clubs across 3 categories, admin-editable content (logo/description/events/achievements/socials) per club
 ├── staff-directory.html       # Personnel listing
 ├── support.html/js            # "Let's Connect" support page — contact info (pulled from siteContent/about's hero fields) + a contact form that writes to supportMessages
 ├── login.html/js              # Firebase Auth login page
@@ -31,7 +31,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ├── auth-ui.js                 # Shared login/logout header state
 ├── nav.js                     # Mobile hamburger menu toggle + Explore dropdown
 ├── theme.js                   # Dark/light toggle (localStorage)
-├── style.css                  # Complete design system (58KB)
+├── style.css                  # Complete design system (~108KB)
 ├── firestore.rules            # Security rules for all collections
 └── logo.png                   # School logo
 ```
@@ -48,6 +48,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `lostAndFound` | Lost/found item reports | `type` (lost/found), `title`, `description`, `location`, `date`, `contact`, `imageUrls[]` |
 | `users` | Staff accounts with roles | `role` (admin/staff/secretary), `assignedSections[]` (for secretaries) |
 | `siteContent` | Admin-editable content pages, one doc per page (e.g. `siteContent/about`) | one top-level field per page section — see about.js `DEFAULTS` for the full shape |
+| `clubs` | Editable content per student org, one doc per club, doc ID is a fixed slug from `CLUB_LIST` in clubs.js (e.g. `alchemist`, `yes-o`) | `logo`, `description`, `events[]` ({title, date, description}), `achievements[]` ({title, year, description}), `socials` ({facebook, instagram, tiktok, youtube}) |
 | `supportMessages` | Contact-form submissions from the Support page | `firstName`, `lastName`, `email`, `subject`, `yearSection`, `message`, `timestamp` |
 
 ### Roles & Permissions
@@ -119,6 +120,13 @@ Public content page (hero, vision/mission, history timeline, symbols, awards, or
 - Two shared list-editor helpers (`renderStringListEditor`, `renderObjectListEditor`) back every add/remove list in the file (fast facts, electives, symbols, awards, principals, org chart, admission steps) — extend those rather than writing a new one-off editor if another list field gets added later.
 - Images (hero background, a symbol's photo, an org chart member's photo) go through the same ImgBB pattern as Announcements/Lost & Found, via `buildImagePicker()` / `resolveImage()`.
 
+### Clubs (`clubs.js`)
+Fixed roster of ~28 student organizations across 3 categories (Academic / Co-Curricular, Non-Academic / Extra-Curricular, Creatives / SSLG-Affiliate), shown as a tabbed grid of cards. The roster itself — `CATEGORIES` and `CLUB_LIST` (id/shortName/tagline/category per club) — is a plain array at the top of `clubs.js`, not stored in Firestore; adding, renaming, or removing a club means editing that array. Only the per-club CONTENT is Firestore-backed, one doc per club in the `clubs` collection keyed by each club's fixed `id`:
+- Anyone can click a card to open a read-only detail modal (logo, description, events, achievements, social icons). Admin/staff get an extra "✎" button on every card (and inside the detail view) that swaps the same modal into an edit form — reusing about.js's own `buildImagePicker()`/`resolveImage()` (Facebook-style single-logo upload via ImgBB) and `renderObjectListEditor()` (add/remove rows) patterns, duplicated into `clubs.js` rather than imported, same as every other page-specific helper in this codebase.
+- A club with nothing saved yet just shows honest empty states ("No description yet.", "No events posted yet.") instead of Lorem Ipsum — with ~28 cards on one page, repeating placeholder paragraph text across all of them would look broken rather than "not empty," unlike the About page's single-instance Lorem Ipsum fields.
+- The grid renders immediately using the static roster (so names/taglines never wait on a network round trip) with only each card's logo/description shimmering as `.skel` placeholders until the one-time `clubs` collection fetch resolves — different from most other pages' skeleton states, where the whole list itself is unknown until the fetch completes.
+- Club names/taglines are stored in normal capitalization in `CLUB_LIST` and rendered uppercase via CSS (`.club-card-name`, `.club-modal-header h2`) rather than typed in literal ALL CAPS, so a screen reader doesn't read a long club name letter-by-letter as if it were an acronym.
+
 ### Support (`support.js`)
 "Let's Connect"-style contact page: a left column of contact info cards (Email, Facebook, Phone, Visit Us) plus a "Before You Reach Out" callout pointing at the FAQs, and a right-column contact form. Deliberately reuses `siteContent/about`'s hero fields (`email`, `contactNumber`/`landline`, `address`) for the three dynamic contact cards instead of maintaining a second copy of the same school contact info — editing them via the About page's Hero "✎ Edit" panel updates both pages at once, and falls back to the same bracketed-placeholder text (`[Contact Number]`, etc.) as `about.js`'s own `DEFAULTS` when nothing's been filled in yet. The Facebook card is a static `href="#"` (same convention as the footer social icons) for Luck to paste the real URL into directly. The form has no auth gate — anyone can submit — and writes to `supportMessages` (`firstName`, `lastName`, `email`, `subject`, `yearSection`, `message`, `timestamp`); nothing in the UI reads that collection back yet, so check submissions via the Firebase Console (or build an admin inbox later) until something does.
 
@@ -158,7 +166,7 @@ firebase deploy --only firestore:rules
 ## File Conventions
 
 - **ES Modules**: All `.js` files use `import`/`export` and are loaded with `<script type="module">`
-- **Shared DOM IDs**: `login-link`, `logout-button`, `theme-toggle`, `nav-toggle`, `suspension-banner` — present on every page. `confirm-modal` is present on every page EXCEPT `about.html`, which doesn't need one — its edits aren't committed until Save, so Cancel can just discard the draft without a confirmation dialog.
+- **Shared DOM IDs**: `login-link`, `logout-button`, `theme-toggle`, `nav-toggle`, `suspension-banner` — present on every page. `confirm-modal` is present on every page EXCEPT `about.html` and `clubs.html`, neither of which needs one — both only ever edit an existing fixed entity (a page section, a club) and edits aren't committed until Save, so Cancel can just discard the draft without a confirmation dialog. Neither page has a delete action.
 - **CSS**: Single `style.css` with design tokens (colors, spacing, typography) as CSS custom properties
 - **Comments**: Heavy inline documentation explaining *why*, not just *what*
 
@@ -170,7 +178,7 @@ firebase deploy --only firestore:rules
 - **`submitted` field on attendance docs** — added for the Submit workflow. Three states: missing entirely (doc predates this feature — treated as submitted), explicitly `false` (a draft someone started marking but never confirmed), or `true` (submitted). `attendance.js` and `reports.js` both check this with the same `!== false` pattern — change one, change both.
 - **`ATTENDANCE_START_DATE` is duplicated** in `attendance.js` (bounds the date navigator) and `reports.js` (bounds which missing days get flagged "not submitted"). Same tradeoff as the ImgBB key below — update both if the real rollout date changes.
 - **Secretary role** only exists in `attendance.js` — other pages treat secretaries as regular users (no admin tools).
-- **ImgBB API key** is hardcoded in three files (`announcements.js`, `lost-and-found.js`, `about.js`). Rotate in all three if needed.
+- **ImgBB API key** is hardcoded in four files (`announcements.js`, `lost-and-found.js`, `about.js`, `clubs.js`). Rotate in all four if needed.
 - **PDF.js worker** configured in `attendance.js:16-18` — must match pdf.js version.
 - **Announcements images are optional** — `getImageUrls(data)` can return an empty array; always check `.length` before assuming a cover photo exists (see the placeholder fallback in `renderEventMedia()`).
 - **Dashboard hero** (`dashboard.js`) scans the 5 most recent announcements for the first one WITH a photo, since images are now optional — it won't necessarily feature the literal latest post if that one happens to be text-only.

@@ -67,14 +67,23 @@
   <div class="page-header fx-rise-in">
     <span class="eyebrow">MODULE — CLUBS</span>
     <h1>Student <span class="text-gradient">Clubs</span></h1>
-    <p>Information about school organizations and activities.</p>
+    <p>Academic, extra-curricular, and creative organizations Pascians can join.</p>
   </div>
 
-  <div class="placeholder-box fx-rise-in">
-    <span class="eyebrow">IN DEVELOPMENT</span>
-    <p>This feature is being built next — check back soon.</p>
-  </div>
+  <span class="report-subnav-label">CATEGORY</span>
+  <div class="tab-bar" id="club-category-tabs"></div>
+  <p id="club-count" class="feed-count"></p>
+
+  <div id="club-grid" class="club-grid fx-stagger"></div>
 </main>
+
+<!-- ===================== CLUB MODAL (view + admin edit share one shell) ===================== -->
+<div id="club-modal" class="modal-overlay" hidden>
+  <div class="modal-box">
+    <div id="club-modal-body"></div>
+  </div>
+</div>
+<!-- =========================================================== -->
 
 <footer class="site-footer">
   <div class="footer-top">
@@ -131,6 +140,7 @@
 </footer>
 <script>document.getElementById("footer-year").textContent = new Date().getFullYear();</script>
 
+<script type="module" src="clubs.js"></script>
 <script type="module" src="auth-ui.js"></script>
 <script src="nav.js"></script>
 <script type="module" src="suspension-banner.js"></script>

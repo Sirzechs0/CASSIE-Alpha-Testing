@@ -2837,3 +2837,217 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 
 .support-form-card h2 { margin-bottom: 6px; }
 .support-form-intro { color: var(--muted); font-size: 0.88rem; margin: 0 0 22px; }
+/* ============================================================================
+   CLUBS PAGE
+   Fixed roster of ~28 student organizations (see CLUB_LIST in clubs.js),
+   grouped into 3 categories shown as tabs (reuses .tab-bar/.tab-btn from
+   the Attendance/Reports grade-and-section tabs). Only the CONTENT per
+   club — logo, description, events, achievements, social links — is
+   admin-editable and Firestore-backed (one doc per club in the `clubs`
+   collection, keyed by a fixed slug); the roster itself lives in clubs.js,
+   not the database. View and edit share one modal shell (.modal-overlay /
+   .modal-box, same as every other modal on the site) and reuse the About
+   page's own edit-panel building blocks (.form-field, .image-picker,
+   .list-editor-*, .edit-panel-subheading) for the edit form below.
+   ============================================================================ */
+
+.club-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.club-card {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  cursor: pointer;
+  transition: border-color 0.2s var(--ease), transform 0.2s var(--ease), box-shadow 0.25s var(--ease);
+}
+.club-card:hover {
+  border-color: var(--accent-1);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px var(--shadow);
+}
+.club-card.is-skel { cursor: default; }
+.club-card.is-skel:hover { transform: none; border-color: var(--line); box-shadow: none; }
+
+.club-card-logo {
+  flex: 0 0 auto;
+  width: 56px; height: 56px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface-2);
+  box-shadow: 0 0 0 1px var(--line);
+}
+.club-card-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.club-card-logo-empty { display: flex; align-items: center; justify-content: center; }
+.club-card-logo-empty span {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--accent-1);
+  opacity: 0.55;
+}
+
+.club-card-body { flex: 1 1 auto; min-width: 0; }
+.club-card-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  margin: 0 0 3px;
+  color: var(--ink);
+}
+.club-card-tagline {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent-1);
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.club-card-desc {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.club-card-desc-empty { font-style: italic; color: var(--muted-2); }
+
+.club-card-edit-btn {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s var(--ease), border-color 0.15s var(--ease), background-color 0.15s var(--ease);
+}
+.club-card-edit-btn:hover { color: var(--ink); border-color: var(--accent-1); background: var(--surface-hover); }
+
+/* ---------- Club modal — view mode ---------- */
+.club-modal-header {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 22px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.club-modal-logo {
+  flex: 0 0 auto;
+  width: 76px; height: 76px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--surface-2);
+  box-shadow: 0 0 0 1px var(--line);
+}
+.club-modal-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.club-modal-logo-empty { display: flex; align-items: center; justify-content: center; }
+.club-modal-logo-empty span {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  font-weight: 600;
+  color: var(--accent-1);
+  opacity: 0.55;
+}
+.club-modal-header h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  margin: 4px 0 4px;
+}
+.club-modal-tagline { color: var(--muted); font-size: 0.88rem; margin: 0; }
+
+.club-modal-section { margin-bottom: 22px; }
+.club-modal-section h3 {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--accent-1);
+  margin: 0 0 10px;
+}
+.club-modal-section > p { color: var(--ink); font-size: 0.9rem; line-height: 1.65; margin: 0; white-space: pre-line; }
+.club-modal-empty { color: var(--muted-2); font-style: italic; font-size: 0.88rem; margin: 0; }
+
+.club-event-item, .club-achievement-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.club-event-item:last-child, .club-achievement-item:last-child { border-bottom: none; }
+.club-event-date, .club-achievement-year {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-1);
+  background: var(--gradient-soft);
+  border-radius: var(--radius-pill);
+  padding: 4px 11px;
+  white-space: nowrap;
+  height: fit-content;
+}
+.club-event-body, .club-achievement-body { flex: 1 1 auto; min-width: 0; }
+.club-event-body strong, .club-achievement-body strong { display: block; font-size: 0.9rem; margin-bottom: 3px; }
+.club-event-body p, .club-achievement-body p { color: var(--muted); font-size: 0.85rem; margin: 0; line-height: 1.55; white-space: pre-line; }
+
+.club-modal-socials {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line-soft);
+}
+.club-social-link {
+  width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--muted);
+  transition: color 0.18s var(--ease), border-color 0.18s var(--ease), background-color 0.18s var(--ease), transform 0.18s var(--ease);
+}
+.club-social-link svg { width: 17px; height: 17px; }
+.club-social-link:hover { color: var(--accent-1); border-color: var(--accent-1); background: var(--gradient-soft); transform: translateY(-2px); text-decoration: none; }
+
+/* ---------- Club modal — edit mode ----------
+   Reuses .form-field / .image-picker / .list-editor-* from the About page's
+   own edit UI (declared earlier in this file) for the actual fields; this
+   is only the logo-picker sizing and the Cancel/Save action row, since
+   .about-edit-actions is a page-specific name kept for the About page. */
+.image-picker-club { width: 140px; height: 140px; border-radius: var(--radius-lg); }
+
+.modal-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+.modal-edit-actions .status-text { flex: 1 1 auto; margin: 0; }
+
+@media (max-width: 480px) {
+  .club-modal-header { flex-direction: column; align-items: flex-start; }
+}
