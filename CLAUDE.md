@@ -34,6 +34,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ├── style.css                  # Complete design system (~108KB)
 ├── firestore.rules            # Security rules for all collections
 └── logo.png                   # School logo
+├── learning-resources.html/js # Curated resource links — Academic Materials, Study Support, DepEd Issuances, Downloadable Forms; admin-editable per subcategory
 ```
 
 ## Key Concepts
@@ -50,6 +51,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `siteContent` | Admin-editable content pages, one doc per page (e.g. `siteContent/about`) | one top-level field per page section — see about.js `DEFAULTS` for the full shape |
 | `clubs` | Editable content per student org, one doc per club, doc ID is a fixed slug from `CLUB_LIST` in clubs.js (e.g. `alchemist`, `yes-o`) | `logo`, `description`, `events[]` ({title, date, description}), `achievements[]` ({title, year, description}), `socials` ({facebook, instagram, tiktok, youtube}) |
 | `supportMessages` | Contact-form submissions from the Support page | `firstName`, `lastName`, `email`, `subject`, `yearSection`, `message`, `timestamp` |
+| `siteContent` (doc `learningResources`) | Resource links by category/subcategory — one Firestore doc, same collection as `siteContent/about` | one field per category, each holding subcategory → resource[] ({title, url, description}) — see CATEGORIES in learning-resources.js |
 
 ### Roles & Permissions
 - **Admin/Staff**: Full CRUD on all modules, can import PDFs, delete sections, edit the About page
@@ -83,6 +85,22 @@ Then open `http://localhost:3000` (or whatever port).
 - Google Fonts: Fraunces, Inter, JetBrains Mono
 
 ## Module Details
+### Learning Resources (`learning-resources.js`)
+Fixed set of 4 categories (Academic Materials, Study Support, DepEd
+Issuances, Downloadable Forms), each broken into fixed subcategories — see
+`CATEGORIES` at the top of the file, same "structure in JS, content in
+Firestore" split as Clubs' `CLUB_LIST`. A "resource" is just a link
+(title/url/optional description); there's no file upload on this page at
+all, so it's the one content-editing page that doesn't use ImgBB. All
+content lives in one doc, `siteContent/learningResources`, reusing the
+existing `siteContent/{pageId}` Firestore rule — no rules changes were
+needed to add this page. Admin/staff get a small "✎" button per
+subcategory card, opening a modal scoped to just that subcategory (add/
+remove/edit resources, Save writes the whole category object back with
+`{merge: true}` so sibling subcategories are never touched). Downloadable
+Forms currently has a single unlabeled bucket instead of named
+subcategories, since the source material didn't specify what belongs
+there — see the comment above `CATEGORIES` for how to split it later.
 
 ### Attendance (`attendance.js` — 1400+ lines)
 **Complexity**: High. Handles PDF class list import with custom Y-coordinate text extraction to handle PCSHS's two-column (Male/Female) format. Key functions:

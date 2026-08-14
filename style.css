@@ -3051,3 +3051,115 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 @media (max-width: 480px) {
   .club-modal-header { flex-direction: column; align-items: flex-start; }
 }
+/* ============================================================================
+   LEARNING RESOURCES PAGE
+   Fixed set of categories (Academic Materials, Study Support, DepEd
+   Issuances, Downloadable Forms), each broken into subcategories -- see
+   CATEGORIES in learning-resources.js. Same split as the Clubs page: the
+   category/subcategory STRUCTURE is plain JS data, only the CONTENT inside
+   each subcategory (a list of resource links) is Firestore-backed and
+   admin/staff-editable. There is no file upload anywhere on this page --
+   every "resource" is just a link (title + URL + optional description),
+   almost always a Google Drive share link the admin already controls.
+   Reuses .about-section/.about-section-header for category spacing,
+   .tab-bar/.tab-btn for the quick-nav pills, .section-edit-btn/
+   .section-edit-slot for Downloadable Forms' single flat card, and the
+   Clubs section's own .modal-overlay/.form-field/.list-editor-*/
+   .modal-edit-actions for the edit modal -- only the subcategory grid/card
+   and the resource link itself are genuinely new classes below.
+   ============================================================================ */
+
+.lr-quicknav { margin-bottom: 34px; }
+.lr-quicknav .tab-btn { text-decoration: none; display: inline-block; }
+
+.lr-category { margin-bottom: 48px; }
+
+.lr-subcat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.lr-subcat-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  transition: border-color 0.2s var(--ease);
+}
+.lr-subcat-card:hover { border-color: var(--accent-1); }
+
+.lr-subcat-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.lr-subcat-header h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 0;
+}
+.lr-subcat-edit-btn {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.76rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s var(--ease), border-color 0.15s var(--ease), background-color 0.15s var(--ease);
+}
+.lr-subcat-edit-btn:hover { color: var(--ink); border-color: var(--accent-1); background: var(--surface-hover); }
+
+.lr-resource-list { display: flex; flex-direction: column; gap: 3px; }
+
+.lr-resource-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  transition: background-color 0.15s var(--ease);
+}
+.lr-resource-link:hover { background: var(--surface-hover); text-decoration: none; }
+.lr-resource-link:hover .lr-resource-title { color: var(--accent-1); }
+.lr-resource-link.is-skel { cursor: default; }
+.lr-resource-link.is-skel:hover { background: none; }
+
+.lr-resource-icon {
+  flex: 0 0 auto;
+  width: 30px; height: 30px;
+  border-radius: var(--radius-sm);
+  background: var(--gradient-soft);
+  color: var(--accent-1);
+  display: flex; align-items: center; justify-content: center;
+}
+.lr-resource-icon svg { width: 16px; height: 16px; }
+
+.lr-resource-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lr-resource-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+  transition: color 0.15s var(--ease);
+  overflow-wrap: anywhere;
+}
+.lr-resource-desc { font-size: 0.78rem; color: var(--muted); line-height: 1.4; }
+
+.lr-resource-empty {
+  color: var(--muted-2);
+  font-style: italic;
+  font-size: 0.86rem;
+  margin: 0;
+  padding: 6px 8px;
+}
+
+@media (max-width: 480px) {
+  .lr-subcat-grid { grid-template-columns: 1fr; }
+}

@@ -10,7 +10,7 @@
   })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>About | PCSHS SMS</title>
+<title>Learning Resources | PCSHS SMS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -38,10 +38,10 @@
     <nav class="site-nav">
       <a href="index.html">Dashboard</a>
       <a href="announcements.html">Announcements</a>
-      <a href="about.html" class="active">About</a>
+      <a href="about.html">About</a>
       <a href="support.html">Support</a>
       <div class="nav-dropdown">
-        <button type="button" class="nav-dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+        <button type="button" class="nav-dropdown-toggle active" aria-haspopup="true" aria-expanded="false">
           Explore <span class="nav-dropdown-caret" aria-hidden="true">▾</span>
         </button>
         <div class="nav-dropdown-menu">
@@ -49,7 +49,7 @@
           <a href="reports.html">Attendance Reports</a>
           <a href="lost-and-found.html">Lost &amp; Found</a>
           <a href="faqs.html">FAQs</a>
-          <a href="learning-resources.html">Learning Resources</a>
+          <a href="learning-resources.html" class="active">Learning Resources</a>
           <a href="clubs.html">Clubs</a>
           <a href="staff-directory.html">Staff Directory</a>
         </div>
@@ -64,125 +64,25 @@
   </div>
 </header>
 
-<!-- ===================== HERO ===================== -->
-<!-- Full-bleed — deliberately breaks out of the standard `main` width so the
-     background photo (uploaded by an admin) reads as a real editorial hero,
-     not a contained card like the dashboard's hero block. -->
-<section class="about-hero" id="about-hero">
-  <div class="about-hero-bg" id="hero-bg" aria-hidden="true"></div>
-  <div class="about-hero-overlay" aria-hidden="true"></div>
-  <div class="about-hero-edit-slot" id="hero-edit-slot"></div>
-  <div class="about-hero-content">
-    <h1>Pasig City Science High School</h1>
-    <p class="about-hero-tagline" id="hero-tagline">We Excel, We Serve, We Lead</p>
-  </div>
-</section>
-<div class="about-contact-bar" id="hero-contact-bar"><!-- rendered by about.js --></div>
-<!-- =================================================== -->
-
 <main>
+  <div class="page-header fx-rise-in">
+    <span class="eyebrow">MODULE — LEARNING RESOURCES</span>
+    <h1>Learning <span class="text-gradient">Resources</span></h1>
+    <p>Curated links for academic materials, study support, DepEd issuances, and downloadable forms — all in one place.</p>
+  </div>
 
-  <!-- ===================== OUR PURPOSE (Vision / Mission) ===================== -->
-  <section class="about-section" id="section-purpose">
-    <div class="about-section-header">
-      <div>
-        <span class="eyebrow">OUR PURPOSE</span>
-        <h2>Guided by <span class="text-gradient">Purpose</span></h2>
-      </div>
-      <div class="section-edit-slot" id="purpose-edit-slot"></div>
-    </div>
-    <div id="purpose-body" class="purpose-grid fx-stagger"></div>
-  </section>
+  <nav class="tab-bar lr-quicknav" id="lr-quicknav" aria-label="Jump to category"></nav>
 
-  <!-- ===================== ABOUT ===================== -->
-  <section class="about-section" id="section-about">
-    <div class="about-section-header">
-      <div>
-        <span class="eyebrow">WHO WE ARE</span>
-        <h2>About Pasig City <span class="text-gradient">Science</span> High School</h2>
-      </div>
-      <div class="section-edit-slot" id="about-edit-slot"></div>
-    </div>
-    <div id="about-body" class="about-two-col"></div>
-  </section>
-
-  <!-- ===================== HISTORY ===================== -->
-  <section class="about-section" id="section-history">
-    <div class="about-section-header">
-      <div>
-        <span class="eyebrow">OUR STORY</span>
-        <h2>History of <span class="text-gradient">PCSHS</span></h2>
-      </div>
-      <div class="section-edit-slot" id="history-edit-slot"></div>
-    </div>
-    <div id="history-body"></div>
-  </section>
-
-  <!-- ===================== SYMBOLS ===================== -->
-  <section class="about-section" id="section-symbols">
-    <div class="about-section-header">
-      <div>
-        <span class="eyebrow">IDENTITY</span>
-        <h2>School <span class="text-gradient">Symbols</span></h2>
-      </div>
-      <div class="section-edit-slot" id="symbols-edit-slot"></div>
-    </div>
-    <div id="symbols-body" class="symbol-grid fx-stagger"></div>
-  </section>
-
-  <!-- ===================== AWARDS & RECOGNITIONS ===================== -->
-  <section class="about-section" id="section-awards">
-    <div class="about-section-header">
-      <div>
-        <span class="eyebrow">RECOGNITION</span>
-        <h2>Awards &amp; <span class="text-gradient">Recognitions</span></h2>
-      </div>
-      <div class="section-edit-slot" id="awards-edit-slot"></div>
-    </div>
-    <div id="awards-body" class="award-list fx-stagger"></div>
-  </section>
-
-  <!-- ===================== ORGANIZATIONAL CHART ===================== -->
-  <section class="about-section" id="section-orgchart">
-    <div class="about-section-header">
-      <div>
-        <span class="eyebrow">LEADERSHIP</span>
-        <h2>Organizational <span class="text-gradient">Chart</span></h2>
-      </div>
-      <div class="section-edit-slot" id="orgchart-edit-slot"></div>
-    </div>
-    <div id="orgchart-body" class="org-grid fx-stagger"></div>
-  </section>
-
-  <!-- ===================== COURSES & STRANDS ===================== -->
-  <section class="about-section" id="section-courses">
-    <div class="about-section-header">
-      <div>
-        <span class="eyebrow">ACADEMICS</span>
-        <h2>Courses &amp; <span class="text-gradient">Strands</span> Offered</h2>
-      </div>
-      <div class="section-edit-slot" id="courses-edit-slot"></div>
-    </div>
-    <div id="courses-body"></div>
-  </section>
-
-  <!-- ===================== ADMISSION PROCESS ===================== -->
-  <section class="about-section" id="section-admission">
-    <div class="about-section-header">
-      <div>
-        <span class="eyebrow">ADMISSIONS</span>
-        <h2>Admission <span class="text-gradient">Process</span></h2>
-      </div>
-      <div class="section-edit-slot" id="admission-edit-slot"></div>
-    </div>
-    <div id="admission-body"></div>
-
-    <div class="about-closing fx-rise-in">
-      <p>Have more questions? Check the <a href="faqs.html">FAQs</a> or browse the <a href="staff-directory.html">Staff Directory</a>.</p>
-    </div>
-  </section>
-
+  <div id="lr-categories" class="lr-categories" aria-busy="true"></div>
 </main>
+
+<!-- ===================== EDIT RESOURCE MODAL (admin/staff only) ===================== -->
+<div id="lr-modal" class="modal-overlay" hidden>
+  <div class="modal-box">
+    <div id="lr-modal-body"></div>
+  </div>
+</div>
+<!-- =================================================================================== -->
 
 <footer class="site-footer">
   <div class="footer-top">
@@ -196,6 +96,7 @@
       </a>
       <p class="footer-blurb">Centralized Academic and School Services Information Engine — one place for attendance, announcements, and everything Pascians need to know.</p>
       <div class="footer-social">
+        <!-- Paste each real profile URL into the href="#" below. -->
         <a href="#" class="footer-social-link" aria-label="Facebook" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h-2a5 5 0 0 0-5 5v3H6v4h2v6h4v-6h3l1-4h-4V8a1 1 0 0 1 1-1h3z"/></svg>
         </a>
@@ -225,7 +126,7 @@
       <a href="about.html">About</a>
       <a href="support.html">Support</a>
       <a href="faqs.html">FAQs</a>
-      <a href="learning-resources.html">Learning Resources</a>
+      <a href="learning-resources.html" class="active">Learning Resources</a>
       <a href="clubs.html">Clubs</a>
       <a href="staff-directory.html">Staff Directory</a>
       <a href="login.html">Staff Login</a>
@@ -239,7 +140,7 @@
 </footer>
 <script>document.getElementById("footer-year").textContent = new Date().getFullYear();</script>
 
-<script type="module" src="about.js"></script>
+<script type="module" src="learning-resources.js"></script>
 <script type="module" src="auth-ui.js"></script>
 <script src="nav.js"></script>
 <script type="module" src="suspension-banner.js"></script>
